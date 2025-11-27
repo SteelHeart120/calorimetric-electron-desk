@@ -1,3 +1,10 @@
+/**
+ * @file src/main/main.ts
+ * @description Entry point for the Main process.
+ * This file controls the lifecycle of the application, creates browser windows,
+ * and handles system events.
+ */
+
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
