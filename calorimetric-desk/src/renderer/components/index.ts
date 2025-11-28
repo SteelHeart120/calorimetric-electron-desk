@@ -8,4 +8,6 @@
  * export { default as MyComponent } from './MyComponent';
  */
 
-export { };
+export { default as Sidebar } from './Sidebar';
+export { default as SearchBar } from './SearchBar';
+export { default as Tabs } from './Tabs';
