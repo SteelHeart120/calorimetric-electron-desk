@@ -134,6 +134,19 @@ const Dashboard = () => {
     }
   }, [colorPickerOpen]);
 
+  // Listen for save menu event from Electron menu
+  React.useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.onSaveMenu(() => {
+        handleSaveMenu();
+      });
+
+      return () => {
+        window.electronAPI.removeAllListeners('save-menu');
+      };
+    }
+  }, [mealTables]);
+
   const handleAddRow = (tableIndex: number) => {
     const newTables = [...mealTables];
     newTables[tableIndex].items.push({ codigo: '', cantidad: '', nombre: '', color: '#EF4444' });
