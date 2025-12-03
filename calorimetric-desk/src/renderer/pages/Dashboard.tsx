@@ -345,11 +345,808 @@ const Dashboard = () => {
 
   const renderPatronMacrosView = () => {
     return (
-      <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-32 dark:border-gray-700 dark:bg-gray-900/50">
-        <div className="text-center">
-          <p className="text-lg text-gray-500 dark:text-gray-400">
-            Vista de Patron/Macros - Próximamente
-          </p>
+      <div className="flex flex-col lg:flex-row gap-4">
+        {/* Macros Section - Left */}
+        <div className="flex-1 overflow-y-auto max-h-[calc(100vh-250px)]">
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Macros</h2>
+          <div className="overflow-x-auto rounded-lg border-2 border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+            <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
+              <thead className="bg-gray-100 dark:bg-gray-900">
+                <tr className="divide-x divide-gray-300 dark:divide-gray-700">
+                  <th className="w-48 px-4 py-2 text-left text-xs font-semibold text-gray-900 dark:text-white border-r-2 border-gray-300 dark:border-gray-700">
+                    Grupo de alimento
+                  </th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white border-r-2 border-gray-300 dark:border-gray-700">
+                    Intercambios
+                  </th>
+                  <th className="bg-purple-500 px-3 py-2 text-center text-xs font-semibold text-white border-r-2 border-purple-600">
+                    Carbohidratos
+                  </th>
+                  <th className="bg-red-500 px-3 py-2 text-center text-xs font-semibold text-white border-r-2 border-red-600">
+                    Proteinas
+                  </th>
+                  <th className="bg-orange-500 px-3 py-2 text-center text-xs font-semibold text-white border-r-2 border-orange-600">
+                    Lipidos
+                  </th>
+                  <th className="bg-green-500 px-3 py-2 text-center text-xs font-semibold text-white">
+                    Calorias
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lacteos</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-1.5 text-xs text-gray-900 dark:text-white pl-8">Leche entera</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-1.5 text-xs text-gray-900 dark:text-white pl-8">Leche Semidescremada</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-1.5 text-xs text-gray-900 dark:text-white pl-8">Leche descremada</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Fruta</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Verdura</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Leguminosas</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-sm font-bold text-blue-600 dark:text-blue-400">Azucar</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Azucares sin grasa</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Azucares con grasa</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="bg-purple-500 hover:bg-purple-600">
+                  <td className="px-3 py-1 text-xs font-semibold text-white">Total carbohidratos no cereales</td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                </tr>
+                <tr className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-sm font-bold text-orange-600 dark:text-orange-400">Cereales y tuberculos</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Cereales sin grasa</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Cereales con grasa</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="bg-gray-500 hover:bg-gray-600">
+                  <td className="px-3 py-1 text-xs font-semibold text-white">Total proteinas no animales</td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                </tr>
+                <tr className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-sm font-bold text-red-600 dark:text-red-400">Animal</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Muy bajo</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Bajo</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Moderado</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Alto</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="bg-red-500 hover:bg-red-600">
+                  <td className="px-3 py-1 text-xs font-semibold text-white">Total lipidos no grasas</td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Lipidos con proteina</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Lipidos</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="bg-gray-500 hover:bg-gray-600">
+                  <td className="px-3 py-1 text-xs font-bold text-white">Total</td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Dividing Line */}
+          <div className="my-6 border-t-2 border-gray-400 dark:border-gray-600"></div>
+
+          {/* Labels Section */}
+          <div className="mb-6 flex flex-wrap gap-6">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+              CALORIAS TOTALES: <span className="text-blue-600 dark:text-blue-400">0</span>
+            </div>
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+              MODO FIT: <span className="text-green-600 dark:text-green-400">0</span>
+            </div>
+          </div>
+
+          {/* Two Tables Side by Side - Macronutrients and Reference */}
+          <div className="flex flex-col lg:flex-row gap-6 mb-8">
+            {/* Left Table - Macronutrients */}
+            <div className="flex-shrink-0 overflow-x-auto rounded-lg border-2 border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+              <table className="divide-y divide-gray-300 dark:divide-gray-700">
+                <thead className="bg-gray-400 dark:bg-gray-600">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-white">Macronutriente</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-white">%</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-white">Calorias</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-white">Gramos</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-white">%</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-white">Cal</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-white">G</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tr className="bg-pink-400 hover:bg-pink-500 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-white">Carbohidratos</td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                  </tr>
+                  <tr className="bg-pink-400 hover:bg-pink-500 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-white">Proteinas</td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                  </tr>
+                  <tr className="bg-pink-400 hover:bg-pink-500 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-white">Lipidos</td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Right Table - Reference */}
+            <div className="flex-shrink-0 overflow-x-auto rounded-lg border-2 border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+              <table className="divide-y divide-gray-300 dark:divide-gray-700">
+                <thead className="bg-gray-100 dark:bg-gray-900">
+                  <tr>
+                    <th colSpan={2} className="px-4 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white border-b-2 border-gray-300 dark:border-gray-700">
+                      Referencia de Colores
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tr className="bg-gray-300 hover:bg-gray-400 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Lacteos</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                  <tr className="bg-pink-300 hover:bg-pink-400 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Animales</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                  <tr className="bg-amber-700 hover:bg-amber-800 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-white">Leguminosas</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                  <tr className="bg-green-400 hover:bg-green-500 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Verduras</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                  <tr className="bg-orange-400 hover:bg-orange-500 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Cereales</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                  <tr className="bg-purple-400 hover:bg-purple-500 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-white">Frutas</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                  <tr className="bg-yellow-200 hover:bg-yellow-300 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Lipidos</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                  <tr className="bg-amber-200 hover:bg-amber-300 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Lip+Proteina</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                  <tr className="bg-blue-400 hover:bg-blue-500 transition-colors">
+                    <td className="px-4 py-2 text-xs font-medium text-white">Azucares</td>
+                    <td className="px-3 py-2 text-xs w-12"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Percentage Labels */}
+          <div className="mb-6 flex flex-wrap gap-6">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+              % Cal Total: <span className="text-purple-600 dark:text-purple-400">0</span>
+            </div>
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+              % Fit Total: <span className="text-orange-600 dark:text-orange-400">0</span>
+            </div>
+          </div>
+
+          {/* Macronutrientes / Kg masa Table */}
+          <div className="max-w-2xl overflow-x-auto rounded-lg border-2 border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+            <table className="w-full divide-y divide-gray-300 dark:divide-gray-700">
+              <thead className="bg-gray-100 dark:bg-gray-900">
+                <tr>
+                  <th colSpan={5} className="px-4 py-3 text-center text-base font-bold text-gray-900 dark:text-white border-b-2 border-gray-300 dark:border-gray-700">
+                    Macronutrientes / Kg masa
+                  </th>
+                </tr>
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800">Masa corporal actual</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">66</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">kg</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">66</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">kg</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Calorias</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Proteinas</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Carbohidratos</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                </tr>
+                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Lipidos</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Dividing Line - Vertical */}
+        <div className="hidden lg:block w-px bg-gray-400 dark:bg-gray-600"></div>
+
+        {/* Patron Section - Right */}
+        <div className="flex-[1.5]">
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Patron</h2>
+          
+          {/* First Table - Main Patron Table */}
+          <div className="mb-6 overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
+            <table className="w-full divide-y divide-gray-300 dark:divide-gray-700" style={{ tableLayout: 'fixed' }}>
+              <thead>
+                {/* First Header Row */}
+                <tr className="divide-x divide-gray-300 dark:divide-gray-700">
+                  <th className="bg-green-500 w-48 px-3 py-2 text-center text-xs font-semibold text-white">Tiempo de comida</th>
+                  <th className="bg-gray-400 px-2 py-2 text-center text-xs font-semibold text-white">1</th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
+                  <th className="bg-gray-400 px-2 py-2 text-center text-xs font-semibold text-white">2</th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
+                  <th className="bg-gray-400 px-2 py-2 text-center text-xs font-semibold text-white">3</th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
+                  <th className="bg-gray-400 px-2 py-2 text-center text-xs font-semibold text-white">4</th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
+                  <th className="bg-gray-400 px-2 py-2 text-center text-xs font-semibold text-white">5</th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
+                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white">Calorias</th>
+                </tr>
+                {/* Second Header Row */}
+                <tr className="divide-x divide-gray-300 bg-gray-100 dark:divide-gray-700 dark:bg-gray-900">
+                  <th className="px-3 py-1.5 text-left text-xs font-semibold text-gray-900 dark:text-white">Grupo alimenticio</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Equiv</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">ene</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Equiv</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">ene</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Equiv</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">ene</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Equiv</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">ene</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Equiv</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">ene</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lacteos</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Frutas</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Verduras</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Leguminosas</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Cereales sin grasa</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Cereales con grasa</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Azucares sin grasa</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOA Moderado en grasa</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOA bajo en grasa</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOA muy bajo en grasa</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lipidos con proteina</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lipidos</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 bg-gray-100 hover:bg-gray-200 dark:divide-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white">Calorias Totales</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 bg-gray-100 hover:bg-gray-200 dark:divide-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white">% de la dieta</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Second Table - Grupo Alimenticio Summary */}
+          <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
+            <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
+              <thead>
+                {/* First Header Row - Full Width */}
+                <tr>
+                  <th colSpan={6} className="bg-gray-100 px-4 py-2 text-center text-sm font-semibold text-gray-900 dark:bg-gray-900 dark:text-white border-b-2 border-gray-300 dark:border-gray-700">
+                    Grupo Alimenticio
+                  </th>
+                </tr>
+                {/* Second Header Row - Individual Columns */}
+                <tr className="divide-x divide-gray-300 bg-gray-50 dark:divide-gray-700 dark:bg-gray-800">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-white">Tiempo</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">1</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">2</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">3</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">4</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">5</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Lacteos</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Frutas</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Verduras</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Leguminosas</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Cereales</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Azucares</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">AOAM</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">AOAB</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">AOAMB</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Lipidos</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Lip/Pt</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     );
