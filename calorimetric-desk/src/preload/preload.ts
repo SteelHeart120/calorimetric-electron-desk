@@ -7,14 +7,29 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
+export interface Recipe {
+  id: number;
+  nombre: string;
+  tipo: string;
+  tiempo_preparacion: string;
+  calorias: number;
+  imagen: string;
+  ingredientes: string[];
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   onSaveMenu: (callback: () => void) => {
     ipcRenderer.on('save-menu', callback);
   },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
+  },
+  recipes: {
+    getAll: () => ipcRenderer.invoke('recipes:getAll'),
+    getById: (id: number) => ipcRenderer.invoke('recipes:getById', id),
+    create: (recipe: Omit<Recipe, 'id'>) => ipcRenderer.invoke('recipes:create', recipe),
+    update: (id: number, recipe: Partial<Recipe>) => ipcRenderer.invoke('recipes:update', id, recipe),
+    delete: (id: number) => ipcRenderer.invoke('recipes:delete', id),
   }
 });
 

@@ -4,18 +4,15 @@ import { Tabs } from '../components';
 
 // Predefined color palette
 const COLOR_OPTIONS = [
-  { value: '#EF4444', label: 'Rojo' },
-  { value: '#F59E0B', label: 'Naranja' },
-  { value: '#EAB308', label: 'Amarillo' },
-  { value: '#10B981', label: 'Verde' },
-  { value: '#3B82F6', label: 'Azul' },
-  { value: '#8B5CF6', label: 'Morado' },
-  { value: '#EC4899', label: 'Rosa' },
-  { value: '#06B6D4', label: 'Cian' },
-  { value: '#6366F1', label: 'Indigo' },
-  { value: '#14B8A6', label: 'Turquesa' },
-  { value: '#F97316', label: 'Naranja Oscuro' },
-  { value: '#84CC16', label: 'Lima' },
+  { value: '#6B7280', label: 'Gray' },
+  { value: '#EF4444', label: 'Red' },
+  { value: '#92400E', label: 'Brown' },
+  { value: '#10B981', label: 'Green' },
+  { value: '#F97316', label: 'Orange' },
+  { value: '#8B5CF6', label: 'Purple' },
+  { value: '#EAB308', label: 'Yellow' },
+  { value: '#D97706', label: 'Light Brown' },
+  { value: '#3B82F6', label: 'Blue' },
 ];
 
 interface MealItem {
