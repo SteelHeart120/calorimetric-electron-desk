@@ -7,13 +7,14 @@ export interface Recipe {
   tiempo_preparacion: string;
   calorias: number;
   imagen: string;
+  link?: string;
   ingredientes: string[];
 }
 
 export function getAllRecipes(): Recipe[] {
   const database = getDatabase();
   const recipes = database.prepare(`
-    SELECT r.id, r.nombre, t.Nombre as tipo, r.tiempo_preparacion, r.calorias, r.imagen
+    SELECT r.id, r.nombre, t.Nombre as tipo, r.tiempo_preparacion, r.calorias, r.imagen, r.link
     FROM Recetas r
     JOIN Tiempos t ON r.TiempoId = t.id
   `).all() as any[];
@@ -24,7 +25,7 @@ export function getAllRecipes(): Recipe[] {
 export function getRecipeById(id: number): Recipe | null {
   const database = getDatabase();
   const recipe = database.prepare(`
-    SELECT r.id, r.nombre, t.Nombre as tipo, r.tiempo_preparacion, r.calorias, r.imagen
+    SELECT r.id, r.nombre, t.Nombre as tipo, r.tiempo_preparacion, r.calorias, r.imagen, r.link
     FROM Recetas r
     JOIN Tiempos t ON r.TiempoId = t.id
     WHERE r.id = ?
@@ -54,9 +55,9 @@ export function createRecipe(recipe: Omit<Recipe, 'id'>): number {
   }
 
   const result = database.prepare(`
-    INSERT INTO Recetas (nombre, TiempoId, tiempo_preparacion, calorias, imagen)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(recipe.nombre, tiempoId.id, recipe.tiempo_preparacion, recipe.calorias, recipe.imagen);
+    INSERT INTO Recetas (nombre, TiempoId, tiempo_preparacion, calorias, imagen, link)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(recipe.nombre, tiempoId.id, recipe.tiempo_preparacion, recipe.calorias, recipe.imagen, recipe.link || null);
 
   const recipeId = Number(result.lastInsertRowid);
 
@@ -81,6 +82,7 @@ export function updateRecipe(id: number, recipe: Partial<Recipe>): boolean {
   if (recipe.tiempo_preparacion !== undefined) { updates.push('tiempo_preparacion = ?'); values.push(recipe.tiempo_preparacion); }
   if (recipe.calorias !== undefined) { updates.push('calorias = ?'); values.push(recipe.calorias); }
   if (recipe.imagen !== undefined) { updates.push('imagen = ?'); values.push(recipe.imagen); }
+  if (recipe.link !== undefined) { updates.push('link = ?'); values.push(recipe.link); }
 
   if (recipe.tipo !== undefined) {
     let tiempoId = database.prepare('SELECT id FROM Tiempos WHERE Nombre = ?').get(recipe.tipo) as any;

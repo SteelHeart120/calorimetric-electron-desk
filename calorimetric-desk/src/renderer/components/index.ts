@@ -11,3 +11,7 @@
 export { default as Sidebar } from './Sidebar';
 export { default as SearchBar } from './SearchBar';
 export { default as Tabs } from './Tabs';
+export { AddPatientModal } from './AddPatientModal';
+export { AddRecipeModal } from './AddRecipeModal';
+export { AddIngredienteModal } from './AddIngredienteModal';
+export { IngredientesListModal } from './IngredientesListModal';

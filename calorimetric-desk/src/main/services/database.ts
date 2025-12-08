@@ -37,21 +37,84 @@ function initializeSchema() {
     createTables();
     seedInitialData();
     console.log('Database initialized successfully');
-  } else if (!pacientesExists) {
-    console.log('Adding Pacientes table...');
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS Pacientes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('Pacientes table added successfully');
+  } else {
+    // Add missing columns to existing tables
+    if (!pacientesExists) {
+      console.log('Adding Pacientes table...');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Pacientes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log('Pacientes table added successfully');
+    }
+
+    // Check if link column exists in Recetas
+    const linkColumnExists = db.prepare(
+      "SELECT COUNT(*) as count FROM pragma_table_info('Recetas') WHERE name='link'"
+    ).get() as any;
+
+    if (linkColumnExists.count === 0) {
+      console.log('Adding link column to Recetas table...');
+      db.exec('ALTER TABLE Recetas ADD COLUMN link TEXT');
+      console.log('Link column added successfully');
+    }
+
+    // Check if TipoIngrediente table exists
+    const tipoIngredienteExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='TipoIngrediente'"
+    ).get();
+
+    if (!tipoIngredienteExists) {
+      console.log('Creating TipoIngrediente table...');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS TipoIngrediente (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL UNIQUE,
+          color TEXT NOT NULL
+        );
+      `);
+      
+      // Seed initial tipos
+      db.exec(`
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Lácteos', '#808080');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Animales', '#FF6363');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Leguminosas', '#A52A2A');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Verduras', '#008000');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Cereales', '#FF8C00');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Frutas', '#8A2BE2');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Lípidos', '#FFFF00');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Líp+proteína', '#CD661D');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Azúcares', '#00BFFF');
+      `);
+      console.log('TipoIngrediente table created successfully');
+    }
+
+    // Check if tipo_id column exists in Ingredientes
+    const tipoIdColumnExists = db.prepare(
+      "SELECT COUNT(*) as count FROM pragma_table_info('Ingredientes') WHERE name='tipo_id'"
+    ).get() as any;
+
+    if (tipoIdColumnExists.count === 0) {
+      console.log('Adding tipo_id column to Ingredientes table...');
+      db.exec('ALTER TABLE Ingredientes ADD COLUMN tipo_id INTEGER REFERENCES TipoIngrediente(id)');
+      console.log('tipo_id column added successfully');
+    }
   }
 }
 
 function createTables() {
   if (!db) return;
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS TipoIngrediente (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL UNIQUE,
+      color TEXT NOT NULL
+    );
+  `);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS Tiempos (
@@ -63,7 +126,9 @@ function createTables() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS Ingredientes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nombre TEXT NOT NULL UNIQUE
+      nombre TEXT NOT NULL UNIQUE,
+      tipo_id INTEGER,
+      FOREIGN KEY (tipo_id) REFERENCES TipoIngrediente(id)
     );
   `);
 
@@ -75,6 +140,7 @@ function createTables() {
       tiempo_preparacion TEXT,
       calorias INTEGER,
       imagen TEXT,
+      link TEXT,
       FOREIGN KEY (TiempoId) REFERENCES Tiempos(id)
     );
   `);
@@ -102,6 +168,19 @@ function createTables() {
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Comida');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Cena');
+  `);
+
+  // Seed TipoIngrediente with initial data
+  db.exec(`
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Lácteos', '#808080');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Animales', '#FF6363');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Leguminosas', '#A52A2A');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Verduras', '#008000');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Cereales', '#FF8C00');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Frutas', '#8A2BE2');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Lípidos', '#FFFF00');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Líp+proteína', '#CD661D');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Azúcares', '#00BFFF');
   `);
 }
 

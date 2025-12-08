@@ -6,15 +6,15 @@ import { AddPatientModal } from '../components/AddPatientModal';
 
 // Predefined color palette
 const COLOR_OPTIONS = [
-  { value: '#6B7280', label: 'Gray' },
-  { value: '#EF4444', label: 'Red' },
-  { value: '#92400E', label: 'Brown' },
-  { value: '#10B981', label: 'Green' },
-  { value: '#F97316', label: 'Orange' },
-  { value: '#8B5CF6', label: 'Purple' },
-  { value: '#EAB308', label: 'Yellow' },
-  { value: '#D97706', label: 'Light Brown' },
-  { value: '#3B82F6', label: 'Blue' },
+  { value: '#808080', label: 'Lácteos' },
+  { value: '#FF6363', label: 'Animales' },
+  { value: '#A52A2A', label: 'Leguminosas' },
+  { value: '#008000', label: 'Verduras' },
+  { value: '#FF8C00', label: 'Cereales' },
+  { value: '#8A2BE2', label: 'Frutas' },
+  { value: '#FFFF00', label: 'Lípidos' },
+  { value: '#CD661D', label: 'Líp+proteína' },
+  { value: '#00BFFF', label: 'Azúcares' },
 ];
 
 interface MealItem {
@@ -676,40 +676,40 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  <tr className="bg-gray-300 hover:bg-gray-400 transition-colors">
-                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Lacteos</td>
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#808080' }}>
+                    <td className="px-4 py-2 text-xs font-medium text-white">Lácteos</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
-                  <tr className="bg-pink-300 hover:bg-pink-400 transition-colors">
-                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Animales</td>
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#FF6363' }}>
+                    <td className="px-4 py-2 text-xs font-medium text-white">Animales</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
-                  <tr className="bg-amber-700 hover:bg-amber-800 transition-colors">
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#A52A2A' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Leguminosas</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
-                  <tr className="bg-green-400 hover:bg-green-500 transition-colors">
-                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Verduras</td>
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#008000' }}>
+                    <td className="px-4 py-2 text-xs font-medium text-white">Verduras</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
-                  <tr className="bg-orange-400 hover:bg-orange-500 transition-colors">
-                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Cereales</td>
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#FF8C00' }}>
+                    <td className="px-4 py-2 text-xs font-medium text-white">Cereales</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
-                  <tr className="bg-purple-400 hover:bg-purple-500 transition-colors">
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#8A2BE2' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Frutas</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
-                  <tr className="bg-yellow-200 hover:bg-yellow-300 transition-colors">
-                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Lipidos</td>
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#FFFF00' }}>
+                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Lípidos</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
-                  <tr className="bg-amber-200 hover:bg-amber-300 transition-colors">
-                    <td className="px-4 py-2 text-xs font-medium text-gray-900">Lip+Proteina</td>
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#CD661D' }}>
+                    <td className="px-4 py-2 text-xs font-medium text-white">Líp+proteína</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
-                  <tr className="bg-blue-400 hover:bg-blue-500 transition-colors">
-                    <td className="px-4 py-2 text-xs font-medium text-white">Azucares</td>
+                  <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#00BFFF' }}>
+                    <td className="px-4 py-2 text-xs font-medium text-white">Azúcares</td>
                     <td className="px-3 py-2 text-xs w-12"></td>
                   </tr>
                 </tbody>

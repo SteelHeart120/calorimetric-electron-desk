@@ -5,10 +5,11 @@
  * and handles system events.
  */
 
-import { app, BrowserWindow, Menu, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, protocol } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { initDatabase, closeDatabase, registerIpcHandlers } from './services';
+import * as fs from 'fs';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -72,6 +73,33 @@ const createWindow = () => {
       ]
     },
     {
+      label: 'Recetas',
+      submenu: [
+        {
+          label: 'Nueva Receta',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => {
+            mainWindow.webContents.send('show-add-recipe');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Agregar Ingrediente',
+          accelerator: 'CmdOrCtrl+I',
+          click: () => {
+            mainWindow.webContents.send('show-add-ingrediente');
+          }
+        },
+        {
+          label: 'Lista de Ingredientes',
+          accelerator: 'CmdOrCtrl+L',
+          click: () => {
+            mainWindow.webContents.send('show-ingredientes-list');
+          }
+        }
+      ]
+    },
+    {
       label: 'Edit',
       submenu: [
         { role: 'undo' },
@@ -105,6 +133,13 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
+  // Register protocol to serve local images
+  protocol.registerFileProtocol('local-file', (request, callback) => {
+    const url = request.url.replace('local-file://', '');
+    const filePath = path.join(app.getPath('userData'), url);
+    callback({ path: filePath });
+  });
+
   initDatabase();
   registerIpcHandlers();
   createWindow();

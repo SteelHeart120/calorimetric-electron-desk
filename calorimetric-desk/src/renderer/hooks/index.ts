@@ -10,3 +10,4 @@
 
 export { useRecipes } from './useRecipes';
 export { usePacientes } from './usePacientes';
+export { useIngredientes } from './useIngredientes';

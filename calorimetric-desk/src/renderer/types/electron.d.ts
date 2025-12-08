@@ -5,6 +5,7 @@ export interface Recipe {
   tiempo_preparacion: string;
   calorias: number;
   imagen: string;
+  link?: string;
   ingredientes: string[];
 }
 
@@ -14,9 +15,26 @@ export interface Paciente {
   created_at: string;
 }
 
+export interface Ingrediente {
+  id: number;
+  nombre: string;
+  tipo_id?: number;
+  tipo?: string;
+  color?: string;
+}
+
+export interface TipoIngrediente {
+  id: number;
+  nombre: string;
+  color: string;
+}
+
 export interface ElectronAPI {
   onSaveMenu: (callback: () => void) => void;
   onShowAddPatient: (callback: () => void) => void;
+  onShowAddRecipe: (callback: () => void) => void;
+  onShowAddIngrediente: (callback: () => void) => void;
+  onShowIngredientesList: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
   recipes: {
     getAll: () => Promise<Recipe[]>;
@@ -32,6 +50,17 @@ export interface ElectronAPI {
     update: (id: number, nombre: string) => Promise<boolean>;
     delete: (id: number) => Promise<boolean>;
   };
+  ingredientes: {
+    getAll: () => Promise<Ingrediente[]>;
+    getById: (id: number) => Promise<Ingrediente | undefined>;
+    create: (nombre: string, tipo_id?: number) => Promise<Ingrediente>;
+    update: (id: number, nombre: string, tipo_id?: number) => Promise<void>;
+    delete: (id: number) => Promise<void>;
+  };
+  tiposIngrediente: {
+    getAll: () => Promise<TipoIngrediente[]>;
+  };
+  saveRecipeImage: (buffer: ArrayBuffer, fileName: string) => Promise<string>;
 }
 
 declare global {

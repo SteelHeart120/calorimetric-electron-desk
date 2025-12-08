@@ -1,10 +1,16 @@
-import { ipcMain } from 'electron';
+import { ipcMain, app } from 'electron';
+import * as fs from 'fs';
+import * as path from 'path';
 import { 
   getAllRecipes, getRecipeById, createRecipe, updateRecipe, deleteRecipe, Recipe
 } from './recetasService';
 import { 
   getAllPacientes, getPacienteById, createPaciente, updatePaciente, deletePaciente
 } from './pacientesService';
+import { 
+  getAllIngredientes, getIngredienteById, createIngrediente, updateIngrediente, deleteIngrediente,
+  getAllTiposIngrediente
+} from './ingredientesService';
 
 export function registerIpcHandlers() {
   ipcMain.handle('recipes:getAll', async () => {
@@ -94,6 +100,88 @@ export function registerIpcHandlers() {
       return deletePaciente(id);
     } catch (error) {
       console.error('Error deleting paciente:', error);
+      throw error;
+    }
+  });
+
+  // Ingredientes handlers
+  ipcMain.handle('ingredientes:getAll', async () => {
+    try {
+      return getAllIngredientes();
+    } catch (error) {
+      console.error('Error getting ingredientes:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('ingredientes:getById', async (_, id: number) => {
+    try {
+      return getIngredienteById(id);
+    } catch (error) {
+      console.error('Error getting ingrediente:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('ingredientes:create', async (_, nombre: string, tipo_id?: number) => {
+    try {
+      return createIngrediente(nombre, tipo_id);
+    } catch (error) {
+      console.error('Error creating ingrediente:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('ingredientes:update', async (_, id: number, nombre: string, tipo_id?: number) => {
+    try {
+      return updateIngrediente(id, nombre, tipo_id);
+    } catch (error) {
+      console.error('Error updating ingrediente:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('ingredientes:delete', async (_, id: number) => {
+    try {
+      return deleteIngrediente(id);
+    } catch (error) {
+      console.error('Error deleting ingrediente:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('tipos-ingrediente:getAll', async () => {
+    try {
+      return getAllTiposIngrediente();
+    } catch (error) {
+      console.error('Error getting tipos ingrediente:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('save-recipe-image', async (_, buffer: ArrayBuffer, fileName: string) => {
+    try {
+      const userDataPath = app.getPath('userData');
+      const recetasDir = path.join(userDataPath, 'assets', 'images', 'recetas');
+      
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(recetasDir)) {
+        fs.mkdirSync(recetasDir, { recursive: true });
+      }
+      
+      // Generate unique filename
+      const timestamp = Date.now();
+      const ext = path.extname(fileName);
+      const uniqueFileName = `${timestamp}${ext}`;
+      const filePath = path.join(recetasDir, uniqueFileName);
+      
+      // Write file
+      fs.writeFileSync(filePath, Buffer.from(buffer));
+      
+      // Return the relative path to store in database
+      return `assets/images/recetas/${uniqueFileName}`;
+    } catch (error) {
+      console.error('Error saving recipe image:', error);
       throw error;
     }
   });

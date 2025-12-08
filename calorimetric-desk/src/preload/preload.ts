@@ -14,6 +14,7 @@ export interface Recipe {
   tiempo_preparacion: string;
   calorias: number;
   imagen: string;
+  link?: string;
   ingredientes: string[];
 }
 
@@ -23,12 +24,35 @@ export interface Paciente {
   created_at: string;
 }
 
+export interface Ingrediente {
+  id: number;
+  nombre: string;
+  tipo_id?: number;
+  tipo?: string;
+  color?: string;
+}
+
+export interface TipoIngrediente {
+  id: number;
+  nombre: string;
+  color: string;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   onSaveMenu: (callback: () => void) => {
     ipcRenderer.on('save-menu', callback);
   },
   onShowAddPatient: (callback: () => void) => {
     ipcRenderer.on('show-add-patient', callback);
+  },
+  onShowAddRecipe: (callback: () => void) => {
+    ipcRenderer.on('show-add-recipe', callback);
+  },
+  onShowAddIngrediente: (callback: () => void) => {
+    ipcRenderer.on('show-add-ingrediente', callback);
+  },
+  onShowIngredientesList: (callback: () => void) => {
+    ipcRenderer.on('show-ingredientes-list', callback);
   },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
@@ -46,7 +70,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     create: (nombre: string) => ipcRenderer.invoke('pacientes:create', nombre),
     update: (id: number, nombre: string) => ipcRenderer.invoke('pacientes:update', id, nombre),
     delete: (id: number) => ipcRenderer.invoke('pacientes:delete', id),
-  }
+  },
+  ingredientes: {
+    getAll: () => ipcRenderer.invoke('ingredientes:getAll'),
+    getById: (id: number) => ipcRenderer.invoke('ingredientes:getById', id),
+    create: (nombre: string, tipo_id?: number) => ipcRenderer.invoke('ingredientes:create', nombre, tipo_id),
+    update: (id: number, nombre: string, tipo_id?: number) => ipcRenderer.invoke('ingredientes:update', id, nombre, tipo_id),
+    delete: (id: number) => ipcRenderer.invoke('ingredientes:delete', id),
+  },
+  tiposIngrediente: {
+    getAll: () => ipcRenderer.invoke('tipos-ingrediente:getAll'),
+  },
+  saveRecipeImage: (buffer: ArrayBuffer, fileName: string) => ipcRenderer.invoke('save-recipe-image', buffer, fileName),
 });
 
 // See the Electron documentation for details on how to use preload scripts:

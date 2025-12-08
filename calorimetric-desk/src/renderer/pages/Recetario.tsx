@@ -1,135 +1,21 @@
-import React, { useState, useMemo } from 'react';
-import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from 'react-icons/hi2';
+import React, { useState, useMemo, useEffect } from 'react';
+import { HiPencil, HiTrash, HiArrowTopRightOnSquare } from 'react-icons/hi2';
 import SearchBar from '../components/SearchBar';
+import { AddRecipeModal } from '../components';
+import { useRecipes } from '../hooks';
+import { Recipe } from '../types/electron';
 
-type MealType = 'Desayuno' | 'Comida' | 'Cena';
-
-interface Recipe {
-  id: number;
-  nombre: string;
-  tipo: MealType;
-  tiempo: string;
-  imagen: string;
-  ingredientes: string[];
-  calorias: number;
-}
+type MealType = 'Desayuno' | 'Comida' | 'Cena' | 'Snack' | 'Todos';
 
 const Recetario = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<MealType | 'Todos'>('Todos');
+  const [filterType, setFilterType] = useState<MealType>('Todos');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  
+  const { recipes, loading, error, updateRecipe, deleteRecipe, refresh } = useRecipes();
 
-  const recetas: Recipe[] = [
-    {
-      id: 1,
-      nombre: 'Bowl de Quinoa y Aguacate',
-      tipo: 'Desayuno',
-      tiempo: '15 min',
-      calorias: 320,
-      imagen: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
-      ingredientes: ['Quinoa', 'Aguacate', 'Huevo pochado', 'Espinacas', 'Tomate cherry', 'Limón'],
-    },
-    {
-      id: 2,
-      nombre: 'Tacos de Pescado con Col Morada',
-      tipo: 'Comida',
-      tiempo: '25 min',
-      calorias: 380,
-      imagen: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&h=300&fit=crop',
-      ingredientes: ['Pescado blanco', 'Tortillas de maíz', 'Col morada', 'Cilantro', 'Limón', 'Salsa de yogurt'],
-    },
-    {
-      id: 3,
-      nombre: 'Ensalada de Nopales',
-      tipo: 'Cena',
-      tiempo: '20 min',
-      calorias: 180,
-      imagen: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop',
-      ingredientes: ['Nopales', 'Tomate', 'Cebolla', 'Cilantro', 'Queso fresco', 'Limón', 'Chile serrano'],
-    },
-    {
-      id: 4,
-      nombre: 'Chilaquiles Verdes con Pollo',
-      tipo: 'Desayuno',
-      tiempo: '30 min',
-      calorias: 420,
-      imagen: 'https://images.unsplash.com/photo-1599974715142-a5ec2f90e8cc?w=400&h=300&fit=crop',
-      ingredientes: ['Tortillas horneadas', 'Salsa verde', 'Pollo desmenuzado', 'Crema light', 'Queso fresco', 'Cebolla'],
-    },
-    {
-      id: 5,
-      nombre: 'Ceviche de Camarón',
-      tipo: 'Comida',
-      tiempo: '40 min',
-      calorias: 210,
-      imagen: 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=400&h=300&fit=crop',
-      ingredientes: ['Camarón', 'Limón', 'Tomate', 'Pepino', 'Cebolla morada', 'Cilantro', 'Aguacate'],
-    },
-    {
-      id: 6,
-      nombre: 'Sopa de Frijoles Negros',
-      tipo: 'Cena',
-      tiempo: '35 min',
-      calorias: 280,
-      imagen: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop',
-      ingredientes: ['Frijoles negros', 'Cebolla', 'Ajo', 'Comino', 'Chile chipotle', 'Cilantro', 'Aguacate'],
-    },
-    {
-      id: 7,
-      nombre: 'Molletes Integrales',
-      tipo: 'Desayuno',
-      tiempo: '15 min',
-      calorias: 310,
-      imagen: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop',
-      ingredientes: ['Pan integral', 'Frijoles refritos', 'Queso panela', 'Pico de gallo', 'Aguacate'],
-    },
-    {
-      id: 8,
-      nombre: 'Pozole Verde Light',
-      tipo: 'Comida',
-      tiempo: '45 min',
-      calorias: 350,
-      imagen: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=400&h=300&fit=crop',
-      ingredientes: ['Pollo', 'Maíz pozolero', 'Tomatillos', 'Chile poblano', 'Lechuga', 'Rábanos', 'Orégano'],
-    },
-    {
-      id: 9,
-      nombre: 'Ensalada de Jícama y Mango',
-      tipo: 'Cena',
-      tiempo: '10 min',
-      calorias: 150,
-      imagen: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?w=400&h=300&fit=crop',
-      ingredientes: ['Jícama', 'Mango', 'Pepino', 'Chile en polvo', 'Limón', 'Cilantro'],
-    },
-    {
-      id: 10,
-      nombre: 'Huevos Rancheros Saludables',
-      tipo: 'Desayuno',
-      tiempo: '20 min',
-      calorias: 290,
-      imagen: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400&h=300&fit=crop',
-      ingredientes: ['Huevos', 'Tortilla integral', 'Salsa ranchera', 'Frijoles negros', 'Aguacate', 'Cilantro'],
-    },
-    {
-      id: 11,
-      nombre: 'Tostadas de Atún',
-      tipo: 'Comida',
-      tiempo: '15 min',
-      calorias: 270,
-      imagen: 'https://images.unsplash.com/photo-1624300629298-e9de39c13be5?w=400&h=300&fit=crop',
-      ingredientes: ['Atún en agua', 'Tostadas horneadas', 'Aguacate', 'Tomate', 'Cebolla', 'Limón', 'Lechuga'],
-    },
-    {
-      id: 12,
-      nombre: 'Crema de Calabaza',
-      tipo: 'Cena',
-      tiempo: '30 min',
-      calorias: 160,
-      imagen: 'https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=400&h=300&fit=crop',
-      ingredientes: ['Calabaza', 'Cebolla', 'Ajo', 'Caldo de pollo', 'Leche descremada', 'Nuez moscada', 'Pepitas'],
-    },
-  ];
-
-  const getMealTypeColor = (tipo: MealType) => {
+  const getMealTypeColor = (tipo: string) => {
     switch (tipo) {
       case 'Desayuno':
         return 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
@@ -137,29 +23,53 @@ const Recetario = () => {
         return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400';
       case 'Cena':
         return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400';
+      case 'Snack':
+        return 'bg-pink-100 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400';
+      default:
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
     }
   };
 
-  // Filter and search logic
+  // Filter and search logic - search by nombre or ingredientes
   const filteredRecetas = useMemo(() => {
-    return recetas.filter((receta) => {
-      const matchesSearch = receta.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return recipes.filter((receta) => {
+      const matchesSearch = searchQuery.trim() === '' || 
+        receta.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
         receta.ingredientes.some(ing => ing.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesFilter = filterType === 'Todos' || receta.tipo === filterType;
       return matchesSearch && matchesFilter;
     });
-  }, [searchQuery, filterType]);
+  }, [recipes, searchQuery, filterType]);
 
-  const handleEdit = (id: number) => {
-    console.log('Editar receta:', id);
+  const handleSaveRecipe = async (recipe: Omit<Recipe, 'id'>) => {
+    if (editingRecipe) {
+      await updateRecipe(editingRecipe.id, recipe);
+      setEditingRecipe(null);
+    }
+    await refresh();
   };
 
-  const handleDelete = (id: number) => {
-    console.log('Eliminar receta:', id);
+  const handleEdit = (recipe: Recipe) => {
+    setEditingRecipe(recipe);
+    setIsEditModalOpen(true);
   };
 
-  const handleAddNew = () => {
-    console.log('Agregar nueva receta');
+  const handleDelete = async (id: number, nombre: string) => {
+    if (confirm(`¿Estás seguro de que deseas eliminar la receta "${nombre}"?`)) {
+      await deleteRecipe(id);
+      await refresh();
+    }
+  };
+
+  const handleCardClick = (recipe: Recipe) => {
+    if (recipe.link) {
+      window.open(recipe.link, '_blank');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setEditingRecipe(null);
   };
 
   return (
@@ -172,13 +82,6 @@ const Recetario = () => {
             Gestiona todas tus recetas saludables
           </p>
         </div>
-        <button
-          onClick={handleAddNew}
-          className="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-        >
-          <HiOutlinePlus className="h-5 w-5" />
-          Nueva Receta
-        </button>
       </div>
 
       {/* Search and Filter */}
@@ -191,101 +94,148 @@ const Recetario = () => {
         />
         <select
           value={filterType}
-          onChange={(e) => setFilterType(e.target.value as MealType | 'Todos')}
+          onChange={(e) => setFilterType(e.target.value as MealType)}
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
         >
           <option value="Todos">Todos</option>
           <option value="Desayuno">Desayuno</option>
           <option value="Comida">Comida</option>
           <option value="Cena">Cena</option>
+          <option value="Snack">Snack</option>
         </select>
       </div>
 
       {/* Results count */}
       <div className="text-sm text-gray-600 dark:text-gray-400">
-        Mostrando {filteredRecetas.length} de {recetas.length} recetas
+        Mostrando {filteredRecetas.length} de {recipes.length} recetas
       </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400">Cargando recetas...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
 
       {/* Recipe Cards Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredRecetas.map((receta) => (
-          <div
-            key={receta.id}
-            className="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-200 transition-shadow hover:shadow-md dark:bg-gray-800 dark:ring-gray-700"
-          >
-            {/* Image */}
-            <div className="aspect-video w-full overflow-hidden">
-              <img
-                src={receta.imagen}
-                alt={receta.nombre}
-                className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-              />
+      {!loading && !error && (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredRecetas.map((receta) => (
+            <div
+              key={receta.id}
+              className="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-200 transition-shadow hover:shadow-md dark:bg-gray-800 dark:ring-gray-700"
+            >
+              {/* Image */}
+              <div
+                className={`aspect-video w-full overflow-hidden ${receta.link ? 'cursor-pointer' : ''}`}
+                onClick={() => receta.link && handleCardClick(receta)}
+              >
+                <img
+                  src={receta.imagen ? (receta.imagen.startsWith('http') ? receta.imagen : `local-file://${receta.imagen}`) : 'https://placehold.co/400x300/e5e7eb/9ca3af?text=Sin+imagen'}
+                  alt={receta.nombre}
+                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://placehold.co/400x300/e5e7eb/9ca3af?text=Imagen+no+disponible';
+                  }}
+                />
+              </div>
+
+              {/* Content */}
+              <div className="p-4">
+                {/* Header */}
+                <div className="mb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {receta.nombre}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex shrink-0 rounded-full px-2 py-1 text-xs font-medium ${getMealTypeColor(receta.tipo)}`}>
+                        {receta.tipo}
+                      </span>
+                      {receta.link && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCardClick(receta);
+                          }}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                          title="Ver receta completa"
+                        >
+                          <HiArrowTopRightOnSquare className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ingredients */}
+                <div className="mb-4">
+                  <h4 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Ingredientes:
+                  </h4>
+                  <div className="flex flex-wrap gap-1">
+                    {receta.ingredientes.slice(0, 5).map((ingrediente, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                      >
+                        {ingrediente}
+                      </span>
+                    ))}
+                    {receta.ingredientes.length > 5 && (
+                      <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        +{receta.ingredientes.length - 5} más
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(receta)}
+                    className="flex-1 inline-flex items-center justify-center gap-x-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    <HiPencil className="h-4 w-4" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(receta.id, receta.nombre)}
+                    className="inline-flex items-center justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 dark:bg-red-700 dark:hover:bg-red-600 transition-colors"
+                  >
+                    <HiTrash className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-
-            {/* Content */}
-            <div className="p-4">
-              {/* Header */}
-              <div className="mb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {receta.nombre}
-                  </h3>
-                  <span className={`inline-flex shrink-0 rounded-full px-2 py-1 text-xs font-medium ${getMealTypeColor(receta.tipo)}`}>
-                    {receta.tipo}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                  <span>⏱️ {receta.tiempo}</span>
-                  <span>🔥 {receta.calorias} kcal</span>
-                </div>
-              </div>
-
-              {/* Ingredients */}
-              <div className="mb-4">
-                <h4 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                  Ingredientes:
-                </h4>
-                <div className="flex flex-wrap gap-1">
-                  {receta.ingredientes.map((ingrediente, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                    >
-                      {ingrediente}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(receta.id)}
-                  className="flex-1 inline-flex items-center justify-center gap-x-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-600"
-                >
-                  <HiOutlinePencil className="h-4 w-4" />
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(receta.id)}
-                  className="inline-flex items-center justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 dark:bg-red-700 dark:hover:bg-red-600"
-                >
-                  <HiOutlineTrash className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* No results */}
-      {filteredRecetas.length === 0 && (
+      {!loading && !error && filteredRecetas.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400">
             No se encontraron recetas que coincidan con tu búsqueda.
           </p>
         </div>
       )}
+
+      {/* Edit Recipe Modal */}
+      <AddRecipeModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveRecipe}
+        editMode={!!editingRecipe}
+        initialData={editingRecipe || undefined}
+      />
     </div>
   );
 };
