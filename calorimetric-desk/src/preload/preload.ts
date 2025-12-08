@@ -17,9 +17,18 @@ export interface Recipe {
   ingredientes: string[];
 }
 
+export interface Paciente {
+  id: number;
+  nombre: string;
+  created_at: string;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   onSaveMenu: (callback: () => void) => {
     ipcRenderer.on('save-menu', callback);
+  },
+  onShowAddPatient: (callback: () => void) => {
+    ipcRenderer.on('show-add-patient', callback);
   },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
@@ -30,6 +39,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     create: (recipe: Omit<Recipe, 'id'>) => ipcRenderer.invoke('recipes:create', recipe),
     update: (id: number, recipe: Partial<Recipe>) => ipcRenderer.invoke('recipes:update', id, recipe),
     delete: (id: number) => ipcRenderer.invoke('recipes:delete', id),
+  },
+  pacientes: {
+    getAll: () => ipcRenderer.invoke('pacientes:getAll'),
+    getById: (id: number) => ipcRenderer.invoke('pacientes:getById', id),
+    create: (nombre: string) => ipcRenderer.invoke('pacientes:create', nombre),
+    update: (id: number, nombre: string) => ipcRenderer.invoke('pacientes:update', id, nombre),
+    delete: (id: number) => ipcRenderer.invoke('pacientes:delete', id),
   }
 });
 

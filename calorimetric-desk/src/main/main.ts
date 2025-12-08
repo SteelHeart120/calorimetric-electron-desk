@@ -8,8 +8,7 @@
 import { app, BrowserWindow, Menu, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-import { initDatabase, closeDatabase } from './services/database';
-import { registerIpcHandlers } from './services/ipcHandlers';
+import { initDatabase, closeDatabase, registerIpcHandlers } from './services';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -56,6 +55,18 @@ const createWindow = () => {
           accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Alt+F4',
           click: () => {
             app.quit();
+          }
+        }
+      ]
+    },
+    {
+      label: 'Pacientes',
+      submenu: [
+        {
+          label: 'Agregar Paciente',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => {
+            mainWindow.webContents.send('show-add-patient');
           }
         }
       ]

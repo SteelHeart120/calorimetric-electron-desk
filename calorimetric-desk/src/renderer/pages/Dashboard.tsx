@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineTrash, HiOutlinePencil } from 'react-icons/hi2';
 import { Tabs } from '../components';
+import { usePacientes } from '../hooks';
+import { AddPatientModal } from '../components/AddPatientModal';
 
 // Predefined color palette
 const COLOR_OPTIONS = [
@@ -31,8 +33,43 @@ interface MealTable {
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('Menu');
   const [pacienteSearch, setPacienteSearch] = useState('');
+  const [selectedPaciente, setSelectedPaciente] = useState<{ id: number; nombre: string } | null>(null);
+  const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState<{ tableIndex: number; itemIndex: number } | null>(null);
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
+
+  const { pacientes, createPaciente, refresh: refreshPacientes } = usePacientes();
+
+  // Listen for menu event to show add patient modal
+  useEffect(() => {
+    const handleShowAddPatient = () => {
+      setIsAddPatientModalOpen(true);
+    };
+
+    window.electronAPI?.onShowAddPatient(handleShowAddPatient);
+
+    return () => {
+      window.electronAPI?.removeAllListeners('show-add-patient');
+    };
+  }, []);
+
+  // Filter patients based on search
+  const filteredPacientes = useMemo(() => {
+    if (!pacienteSearch.trim()) return [];
+    return pacientes.filter(p => 
+      p.nombre.toLowerCase().includes(pacienteSearch.toLowerCase())
+    );
+  }, [pacientes, pacienteSearch]);
+
+  const handleSavePatient = async (nombre: string) => {
+    await createPaciente(nombre);
+    await refreshPacientes();
+  };
+
+  const handleSelectPaciente = (paciente: { id: number; nombre: string }) => {
+    setSelectedPaciente(paciente);
+    setPacienteSearch(paciente.nombre);
+  };
 
   // Initialize meal tables with empty items
   const initialMealTables: MealTable[] = [
@@ -1153,7 +1190,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Header with Search and Add Button */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1 sm:max-w-xs">
+        <div className="flex-1 sm:max-w-xs relative">
           <label htmlFor="paciente-search" className="sr-only">
             Buscar Paciente
           </label>
@@ -1165,6 +1202,21 @@ const Dashboard = () => {
             placeholder="Paciente"
             className="block w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
           />
+          
+          {/* Patient dropdown */}
+          {filteredPacientes.length > 0 && (
+            <div className="absolute z-10 mt-1 w-full rounded-md bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
+              {filteredPacientes.map((paciente) => (
+                <button
+                  key={paciente.id}
+                  onClick={() => handleSelectPaciente(paciente)}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  {paciente.nombre}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <button
           onClick={handleAddMenu}
@@ -1174,6 +1226,13 @@ const Dashboard = () => {
           Agregar Menu
         </button>
       </div>
+
+      {/* Add Patient Modal */}
+      <AddPatientModal
+        isOpen={isAddPatientModalOpen}
+        onClose={() => setIsAddPatientModalOpen(false)}
+        onSave={handleSavePatient}
+      />
 
       {/* Tabs Navigation */}
       <Tabs tabs={tabs} onTabChange={handleTabChange} />

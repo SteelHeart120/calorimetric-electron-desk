@@ -9,3 +9,4 @@
  */
 
 export { useRecipes } from './useRecipes';
+export { usePacientes } from './usePacientes';

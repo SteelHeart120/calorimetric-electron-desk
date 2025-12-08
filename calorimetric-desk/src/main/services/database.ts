@@ -24,15 +24,29 @@ export function initDatabase(): Database.Database {
 function initializeSchema() {
   if (!db) return;
 
-  const tableExists = db.prepare(
+  const recetasExists = db.prepare(
     "SELECT name FROM sqlite_master WHERE type='table' AND name='Recetas'"
   ).get();
 
-  if (!tableExists) {
+  const pacientesExists = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='Pacientes'"
+  ).get();
+
+  if (!recetasExists) {
     console.log('Initializing database schema...');
     createTables();
     seedInitialData();
     console.log('Database initialized successfully');
+  } else if (!pacientesExists) {
+    console.log('Adding Pacientes table...');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS Pacientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Pacientes table added successfully');
   }
 }
 
@@ -73,6 +87,14 @@ function createTables() {
       FOREIGN KEY (RecetaId) REFERENCES Recetas(id) ON DELETE CASCADE,
       FOREIGN KEY (IngredienteId) REFERENCES Ingredientes(id) ON DELETE CASCADE,
       UNIQUE(RecetaId, IngredienteId)
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS Pacientes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -127,6 +149,8 @@ function seedInitialData() {
   ];
 
   for (const recipe of recipes) {
+    // Import from recetasService to avoid circular dependency
+    const { createRecipe } = require('./recetasService');
     createRecipe({ nombre: recipe.nombre, tipo: recipe.tipo, tiempo_preparacion: recipe.tiempo, calorias: recipe.calorias, imagen: recipe.imagen, ingredientes: recipe.ingredientes });
   }
 
@@ -143,122 +167,4 @@ export function closeDatabase() {
     db.close();
     db = null;
   }
-}
-
-export interface Recipe {
-  id: number;
-  nombre: string;
-  tipo: string;
-  tiempo_preparacion: string;
-  calorias: number;
-  imagen: string;
-  ingredientes: string[];
-}
-
-export function getAllRecipes(): Recipe[] {
-  const database = getDatabase();
-  const recipes = database.prepare(`
-    SELECT r.id, r.nombre, t.Nombre as tipo, r.tiempo_preparacion, r.calorias, r.imagen
-    FROM Recetas r
-    JOIN Tiempos t ON r.TiempoId = t.id
-  `).all() as any[];
-
-  return recipes.map(recipe => ({ ...recipe, ingredientes: getRecipeIngredients(recipe.id) }));
-}
-
-export function getRecipeById(id: number): Recipe | null {
-  const database = getDatabase();
-  const recipe = database.prepare(`
-    SELECT r.id, r.nombre, t.Nombre as tipo, r.tiempo_preparacion, r.calorias, r.imagen
-    FROM Recetas r
-    JOIN Tiempos t ON r.TiempoId = t.id
-    WHERE r.id = ?
-  `).get(id) as any;
-
-  if (!recipe) return null;
-  return { ...recipe, ingredientes: getRecipeIngredients(recipe.id) };
-}
-
-function getRecipeIngredients(recipeId: number): string[] {
-  const database = getDatabase();
-  const ingredients = database.prepare(`
-    SELECT i.nombre FROM RecetaIngredientes ri
-    JOIN Ingredientes i ON ri.IngredienteId = i.id
-    WHERE ri.RecetaId = ?
-  `).all(recipeId) as any[];
-  return ingredients.map(ing => ing.nombre);
-}
-
-export function createRecipe(recipe: Omit<Recipe, 'id'>): number {
-  const database = getDatabase();
-  
-  let tiempoId = database.prepare('SELECT id FROM Tiempos WHERE Nombre = ?').get(recipe.tipo) as any;
-  if (!tiempoId) {
-    const result = database.prepare('INSERT INTO Tiempos (Nombre) VALUES (?)').run(recipe.tipo);
-    tiempoId = { id: result.lastInsertRowid };
-  }
-
-  const result = database.prepare(`
-    INSERT INTO Recetas (nombre, TiempoId, tiempo_preparacion, calorias, imagen)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(recipe.nombre, tiempoId.id, recipe.tiempo_preparacion, recipe.calorias, recipe.imagen);
-
-  const recipeId = Number(result.lastInsertRowid);
-
-  for (const ingredientName of recipe.ingredientes) {
-    let ingredient = database.prepare('SELECT id FROM Ingredientes WHERE nombre = ?').get(ingredientName) as any;
-    if (!ingredient) {
-      const ingResult = database.prepare('INSERT INTO Ingredientes (nombre) VALUES (?)').run(ingredientName);
-      ingredient = { id: ingResult.lastInsertRowid };
-    }
-    database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId) VALUES (?, ?)').run(recipeId, ingredient.id);
-  }
-
-  return recipeId;
-}
-
-export function updateRecipe(id: number, recipe: Partial<Recipe>): boolean {
-  const database = getDatabase();
-  const updates: string[] = [];
-  const values: any[] = [];
-
-  if (recipe.nombre !== undefined) { updates.push('nombre = ?'); values.push(recipe.nombre); }
-  if (recipe.tiempo_preparacion !== undefined) { updates.push('tiempo_preparacion = ?'); values.push(recipe.tiempo_preparacion); }
-  if (recipe.calorias !== undefined) { updates.push('calorias = ?'); values.push(recipe.calorias); }
-  if (recipe.imagen !== undefined) { updates.push('imagen = ?'); values.push(recipe.imagen); }
-
-  if (recipe.tipo !== undefined) {
-    let tiempoId = database.prepare('SELECT id FROM Tiempos WHERE Nombre = ?').get(recipe.tipo) as any;
-    if (!tiempoId) {
-      const result = database.prepare('INSERT INTO Tiempos (Nombre) VALUES (?)').run(recipe.tipo);
-      tiempoId = { id: result.lastInsertRowid };
-    }
-    updates.push('TiempoId = ?');
-    values.push(tiempoId.id);
-  }
-
-  if (updates.length > 0) {
-    values.push(id);
-    database.prepare(`UPDATE Recetas SET ${updates.join(', ')} WHERE id = ?`).run(...values);
-  }
-
-  if (recipe.ingredientes) {
-    database.prepare('DELETE FROM RecetaIngredientes WHERE RecetaId = ?').run(id);
-    for (const ingredientName of recipe.ingredientes) {
-      let ingredient = database.prepare('SELECT id FROM Ingredientes WHERE nombre = ?').get(ingredientName) as any;
-      if (!ingredient) {
-        const ingResult = database.prepare('INSERT INTO Ingredientes (nombre) VALUES (?)').run(ingredientName);
-        ingredient = { id: ingResult.lastInsertRowid };
-      }
-      database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId) VALUES (?, ?)').run(id, ingredient.id);
-    }
-  }
-
-  return true;
-}
-
-export function deleteRecipe(id: number): boolean {
-  const database = getDatabase();
-  const result = database.prepare('DELETE FROM Recetas WHERE id = ?').run(id);
-  return result.changes > 0;
 }

@@ -1,5 +1,10 @@
 import { ipcMain } from 'electron';
-import { getAllRecipes, getRecipeById, createRecipe, updateRecipe, deleteRecipe, Recipe } from './database';
+import { 
+  getAllRecipes, getRecipeById, createRecipe, updateRecipe, deleteRecipe, Recipe
+} from './recetasService';
+import { 
+  getAllPacientes, getPacienteById, createPaciente, updatePaciente, deletePaciente
+} from './pacientesService';
 
 export function registerIpcHandlers() {
   ipcMain.handle('recipes:getAll', async () => {
@@ -43,6 +48,52 @@ export function registerIpcHandlers() {
       return deleteRecipe(id);
     } catch (error) {
       console.error('Error deleting recipe:', error);
+      throw error;
+    }
+  });
+
+  // Pacientes handlers
+  ipcMain.handle('pacientes:getAll', async () => {
+    try {
+      return getAllPacientes();
+    } catch (error) {
+      console.error('Error getting pacientes:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('pacientes:getById', async (_, id: number) => {
+    try {
+      return getPacienteById(id);
+    } catch (error) {
+      console.error('Error getting paciente:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('pacientes:create', async (_, nombre: string) => {
+    try {
+      return createPaciente(nombre);
+    } catch (error) {
+      console.error('Error creating paciente:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('pacientes:update', async (_, id: number, nombre: string) => {
+    try {
+      return updatePaciente(id, nombre);
+    } catch (error) {
+      console.error('Error updating paciente:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('pacientes:delete', async (_, id: number) => {
+    try {
+      return deletePaciente(id);
+    } catch (error) {
+      console.error('Error deleting paciente:', error);
       throw error;
     }
   });
