@@ -1,5 +1,11 @@
 import { getDatabase } from './database';
 
+export interface RecipeIngredient {
+  nombre: string;
+  tipo?: string;
+  color?: string;
+}
+
 export interface Recipe {
   id: number;
   nombre: string;
@@ -8,7 +14,7 @@ export interface Recipe {
   calorias: number;
   imagen: string;
   link?: string;
-  ingredientes: string[];
+  ingredientes: RecipeIngredient[];
 }
 
 export function getAllRecipes(): Recipe[] {
@@ -35,14 +41,16 @@ export function getRecipeById(id: number): Recipe | null {
   return { ...recipe, ingredientes: getRecipeIngredients(recipe.id) };
 }
 
-function getRecipeIngredients(recipeId: number): string[] {
+function getRecipeIngredients(recipeId: number): RecipeIngredient[] {
   const database = getDatabase();
   const ingredients = database.prepare(`
-    SELECT i.nombre FROM RecetaIngredientes ri
+    SELECT i.nombre, ti.nombre as tipo, ti.color
+    FROM RecetaIngredientes ri
     JOIN Ingredientes i ON ri.IngredienteId = i.id
+    LEFT JOIN TipoIngrediente ti ON i.tipo_id = ti.id
     WHERE ri.RecetaId = ?
   `).all(recipeId) as any[];
-  return ingredients.map(ing => ing.nombre);
+  return ingredients;
 }
 
 export function createRecipe(recipe: Omit<Recipe, 'id'>): number {
@@ -61,13 +69,14 @@ export function createRecipe(recipe: Omit<Recipe, 'id'>): number {
 
   const recipeId = Number(result.lastInsertRowid);
 
-  for (const ingredientName of recipe.ingredientes) {
-    let ingredient = database.prepare('SELECT id FROM Ingredientes WHERE nombre = ?').get(ingredientName) as any;
-    if (!ingredient) {
+  for (const ingredient of recipe.ingredientes) {
+    const ingredientName = typeof ingredient === 'string' ? ingredient : ingredient.nombre;
+    let ingredientRecord = database.prepare('SELECT id FROM Ingredientes WHERE nombre = ?').get(ingredientName) as any;
+    if (!ingredientRecord) {
       const ingResult = database.prepare('INSERT INTO Ingredientes (nombre) VALUES (?)').run(ingredientName);
-      ingredient = { id: ingResult.lastInsertRowid };
+      ingredientRecord = { id: ingResult.lastInsertRowid };
     }
-    database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId) VALUES (?, ?)').run(recipeId, ingredient.id);
+    database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId) VALUES (?, ?)').run(recipeId, ingredientRecord.id);
   }
 
   return recipeId;
@@ -101,13 +110,14 @@ export function updateRecipe(id: number, recipe: Partial<Recipe>): boolean {
 
   if (recipe.ingredientes) {
     database.prepare('DELETE FROM RecetaIngredientes WHERE RecetaId = ?').run(id);
-    for (const ingredientName of recipe.ingredientes) {
-      let ingredient = database.prepare('SELECT id FROM Ingredientes WHERE nombre = ?').get(ingredientName) as any;
-      if (!ingredient) {
+    for (const ingredient of recipe.ingredientes) {
+      const ingredientName = typeof ingredient === 'string' ? ingredient : ingredient.nombre;
+      let ingredientRecord = database.prepare('SELECT id FROM Ingredientes WHERE nombre = ?').get(ingredientName) as any;
+      if (!ingredientRecord) {
         const ingResult = database.prepare('INSERT INTO Ingredientes (nombre) VALUES (?)').run(ingredientName);
-        ingredient = { id: ingResult.lastInsertRowid };
+        ingredientRecord = { id: ingResult.lastInsertRowid };
       }
-      database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId) VALUES (?, ?)').run(id, ingredient.id);
+      database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId) VALUES (?, ?)').run(id, ingredientRecord.id);
     }
   }
 

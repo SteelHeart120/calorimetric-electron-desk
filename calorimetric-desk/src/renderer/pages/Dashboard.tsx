@@ -1,21 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { HiOutlinePlus, HiOutlineTrash, HiOutlinePencil } from 'react-icons/hi2';
+import { HiOutlinePlus, HiOutlineTrash, HiOutlinePencil, HiDocumentPlus } from 'react-icons/hi2';
 import { Tabs } from '../components';
 import { usePacientes } from '../hooks';
 import { AddPatientModal } from '../components/AddPatientModal';
+import { LoadRecetaModal } from '../components/LoadRecetaModal';
+import { RecipeIngredient, TipoIngrediente } from '../types/electron';
 
-// Predefined color palette
-const COLOR_OPTIONS = [
-  { value: '#808080', label: 'Lácteos' },
-  { value: '#FF6363', label: 'Animales' },
-  { value: '#A52A2A', label: 'Leguminosas' },
-  { value: '#008000', label: 'Verduras' },
-  { value: '#FF8C00', label: 'Cereales' },
-  { value: '#8A2BE2', label: 'Frutas' },
-  { value: '#FFFF00', label: 'Lípidos' },
-  { value: '#CD661D', label: 'Líp+proteína' },
-  { value: '#00BFFF', label: 'Azúcares' },
-];
+// COLOR_OPTIONS will be populated from database
+let COLOR_OPTIONS: { value: string; label: string }[] = [];
 
 interface MealItem {
   codigo: string;
@@ -37,8 +29,25 @@ const Dashboard = () => {
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState<{ tableIndex: number; itemIndex: number } | null>(null);
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
+  const [isLoadRecetaModalOpen, setIsLoadRecetaModalOpen] = useState(false);
+  const [selectedMenuIndex, setSelectedMenuIndex] = useState<number | null>(null);
 
   const { pacientes, createPaciente, refresh: refreshPacientes } = usePacientes();
+
+  // Load tipos from database on mount
+  useEffect(() => {
+    const loadTipos = async () => {
+      try {
+        const tipos = await window.electronAPI?.tiposIngrediente.getAll();
+        if (tipos) {
+          COLOR_OPTIONS = tipos.map(t => ({ value: t.color, label: t.nombre }));
+        }
+      } catch (error) {
+        console.error('Error loading tipos:', error);
+      }
+    };
+    loadTipos();
+  }, []);
 
   // Listen for menu event to show add patient modal
   useEffect(() => {
@@ -55,11 +64,20 @@ const Dashboard = () => {
 
   // Filter patients based on search
   const filteredPacientes = useMemo(() => {
+    console.log('Filtering patients:', { pacienteSearch, totalPacientes: pacientes.length });
     if (!pacienteSearch.trim()) return [];
-    return pacientes.filter(p => 
+    
+    // If a patient is selected and the search matches exactly, don't show dropdown
+    if (selectedPaciente && pacienteSearch === selectedPaciente.nombre) {
+      return [];
+    }
+    
+    const filtered = pacientes.filter(p => 
       p.nombre.toLowerCase().includes(pacienteSearch.toLowerCase())
     );
-  }, [pacientes, pacienteSearch]);
+    console.log('Filtered results:', filtered.length);
+    return filtered;
+  }, [pacientes, pacienteSearch, selectedPaciente]);
 
   const handleSavePatient = async (nombre: string) => {
     await createPaciente(nombre);
@@ -69,6 +87,8 @@ const Dashboard = () => {
   const handleSelectPaciente = (paciente: { id: number; nombre: string }) => {
     setSelectedPaciente(paciente);
     setPacienteSearch(paciente.nombre);
+    // Close dropdown by clearing the filtered list
+    // The dropdown will close because filteredPacientes will be empty when exact match
   };
 
   // Initialize meal tables with empty items
@@ -195,6 +215,39 @@ const Dashboard = () => {
     }
   };
 
+  const handleLoadReceta = (menuIndex: number) => {
+    setSelectedMenuIndex(menuIndex);
+    setIsLoadRecetaModalOpen(true);
+  };
+
+  const handleAddRecipeIngredients = (ingredients: RecipeIngredient[]) => {
+    if (selectedMenuIndex === null) return;
+    
+    console.log('Adding ingredients to menu index:', selectedMenuIndex);
+    console.log('Ingredients received:', ingredients);
+    
+    const newTables = [...mealTables];
+    const newItems = ingredients.map(ing => ({
+      codigo: '',
+      cantidad: '',
+      nombre: ing.nombre,
+      color: ing.color || '#9CA3AF',
+    }));
+    
+    console.log('New items created:', newItems);
+    
+    // Replace existing items or add if there's only one empty item
+    if (newTables[selectedMenuIndex].items.length === 1 && 
+        newTables[selectedMenuIndex].items[0].nombre === '') {
+      newTables[selectedMenuIndex].items = newItems;
+    } else {
+      newTables[selectedMenuIndex].items.push(...newItems);
+    }
+    
+    console.log('Updated menu table:', newTables[selectedMenuIndex]);
+    setMealTables(newTables);
+  };
+
   const getHeaderColorClasses = (color: 'green' | 'pink') => {
     return color === 'green'
       ? 'bg-emerald-500 text-white dark:bg-emerald-600'
@@ -230,8 +283,15 @@ const Dashboard = () => {
                   className="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700"
                 >
                   {/* Table Header */}
-                  <div className={`px-4 py-1.5 text-center text-sm font-semibold ${getHeaderColorClasses(table.headerColor)}`}>
-                    {table.title}
+                  <div className={`flex items-center justify-between px-4 py-1.5 text-sm font-semibold ${getHeaderColorClasses(table.headerColor)}`}>
+                    <span className="flex-1 text-center">{table.title}</span>
+                    <button
+                      onClick={() => handleLoadReceta(actualTableIndex)}
+                      className="ml-2 rounded p-1 hover:bg-white/20 transition-colors"
+                      title="Cargar Receta"
+                    >
+                      <HiDocumentPlus className="h-4 w-4" />
+                    </button>
                   </div>
 
                   {/* Table */}
@@ -1234,12 +1294,49 @@ const Dashboard = () => {
         onSave={handleSavePatient}
       />
 
+      {/* Load Receta Modal */}
+      <LoadRecetaModal
+        isOpen={isLoadRecetaModalOpen}
+        onClose={() => {
+          setIsLoadRecetaModalOpen(false);
+          setSelectedMenuIndex(null);
+        }}
+        onSelectRecipe={handleAddRecipeIngredients}
+        menuTitle={selectedMenuIndex !== null ? mealTables[selectedMenuIndex]?.title || '' : ''}
+      />
+
       {/* Tabs Navigation */}
       <Tabs tabs={tabs} onTabChange={handleTabChange} />
 
       {/* Tab Content */}
       <div className="mt-6">
-        {activeTab === 'Menu' ? renderMenuView() : renderPatronMacrosView()}
+        {selectedPaciente ? (
+          activeTab === 'Menu' ? renderMenuView() : renderPatronMacrosView()
+        ) : (
+          <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-12 dark:border-gray-600 dark:bg-gray-800">
+            <div className="text-center">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+                No se ha seleccionado paciente
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Busca y selecciona un paciente para comenzar
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

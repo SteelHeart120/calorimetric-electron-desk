@@ -5,7 +5,7 @@
  * and handles system events.
  */
 
-import { app, BrowserWindow, Menu, ipcMain, protocol } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, protocol, shell, dialog } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { initDatabase, closeDatabase, registerIpcHandlers } from './services';
@@ -122,6 +122,76 @@ const createWindow = () => {
         { role: 'zoomOut' },
         { type: 'separator' },
         { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Database',
+      submenu: [
+        {
+          label: 'Show Database Location',
+          click: () => {
+            const dbPath = path.join(app.getPath('userData'), 'calorimetric.db');
+            const userDataPath = app.getPath('userData');
+            
+            dialog.showMessageBox(mainWindow, {
+              type: 'info',
+              title: 'Database Location',
+              message: 'Database File Location',
+              detail: `Database file: calorimetric.db\n\nFull path:\n${dbPath}\n\nUser data folder:\n${userDataPath}`,
+              buttons: ['OK', 'Open Folder', 'Copy Path']
+            }).then(result => {
+              if (result.response === 1) {
+                // Open folder
+                shell.showItemInFolder(dbPath);
+              } else if (result.response === 2) {
+                // Copy path to clipboard
+                require('electron').clipboard.writeText(dbPath);
+              }
+            });
+          }
+        },
+        {
+          label: 'Open Database Folder',
+          click: () => {
+            const userDataPath = app.getPath('userData');
+            shell.openPath(userDataPath);
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Reset Database',
+          click: () => {
+            dialog.showMessageBox(mainWindow, {
+              type: 'warning',
+              title: 'Reset Database',
+              message: 'Reset Database',
+              detail: 'This will delete ALL data including:\n- All recipes\n- All ingredients\n- All patients\n- All menus\n\nThe app will restart and load fresh initial data.\n\nAre you sure you want to continue?',
+              buttons: ['Cancel', 'Reset Database'],
+              defaultId: 0,
+              cancelId: 0
+            }).then(result => {
+              if (result.response === 1) {
+                const dbPath = path.join(app.getPath('userData'), 'calorimetric.db');
+                
+                try {
+                  closeDatabase();
+                  
+                  if (fs.existsSync(dbPath)) {
+                    fs.unlinkSync(dbPath);
+                    console.log('Database deleted successfully');
+                  }
+                  
+                  // Restart the app
+                  app.relaunch();
+                  app.exit(0);
+                } catch (error) {
+                  console.error('Error resetting database:', error);
+                  dialog.showErrorBox('Error', `Failed to reset database: ${error.message}`);
+                }
+              }
+            });
+          }
+        }
       ]
     }
   ]);

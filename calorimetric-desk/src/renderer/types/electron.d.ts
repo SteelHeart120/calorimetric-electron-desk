@@ -1,3 +1,9 @@
+export interface RecipeIngredient {
+  nombre: string;
+  tipo?: string;
+  color?: string;
+}
+
 export interface Recipe {
   id: number;
   nombre: string;
@@ -6,7 +12,7 @@ export interface Recipe {
   calorias: number;
   imagen: string;
   link?: string;
-  ingredientes: string[];
+  ingredientes: RecipeIngredient[];
 }
 
 export interface Paciente {

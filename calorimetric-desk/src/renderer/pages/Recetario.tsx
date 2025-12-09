@@ -35,7 +35,7 @@ const Recetario = () => {
     return recipes.filter((receta) => {
       const matchesSearch = searchQuery.trim() === '' || 
         receta.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        receta.ingredientes.some(ing => ing.toLowerCase().includes(searchQuery.toLowerCase()));
+        receta.ingredientes.some(ing => ing.nombre.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesFilter = filterType === 'Todos' || receta.tipo === filterType;
       return matchesSearch && matchesFilter;
     });
@@ -184,9 +184,13 @@ const Recetario = () => {
                     {receta.ingredientes.slice(0, 5).map((ingrediente, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                        style={{
+                          backgroundColor: ingrediente.color || '#9CA3AF',
+                          color: '#FFFFFF',
+                        }}
                       >
-                        {ingrediente}
+                        {ingrediente.nombre}
                       </span>
                     ))}
                     {receta.ingredientes.length > 5 && (

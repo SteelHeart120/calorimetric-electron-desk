@@ -15,7 +15,9 @@ const TIPO_OPTIONS = ['Desayuno', 'Comida', 'Cena', 'Snack'];
 
 export function AddRecipeModal({ isOpen, onClose, onSave, editMode = false, initialData }: AddRecipeModalProps) {
   const [nombre, setNombre] = useState(initialData?.nombre || '');
-  const [selectedIngredientes, setSelectedIngredientes] = useState<string[]>(initialData?.ingredientes || []);
+  const [selectedIngredientes, setSelectedIngredientes] = useState<string[]>(
+    initialData?.ingredientes?.map(ing => typeof ing === 'string' ? ing : ing.nombre) || []
+  );
   const [ingredienteSearch, setIngredienteSearch] = useState('');
   const [tipo, setTipo] = useState(initialData?.tipo || 'Desayuno');
   const [imagenFile, setImagenFile] = useState<File | null>(null);
@@ -40,7 +42,9 @@ export function AddRecipeModal({ isOpen, onClose, onSave, editMode = false, init
   useEffect(() => {
     if (initialData) {
       setNombre(initialData.nombre || '');
-      setSelectedIngredientes(initialData.ingredientes || []);
+      setSelectedIngredientes(
+        initialData.ingredientes?.map(ing => typeof ing === 'string' ? ing : ing.nombre) || []
+      );
       setTipo(initialData.tipo || 'Desayuno');
       setImagenPreview(initialData.imagen || '');
       setLink(initialData.link || '');
@@ -89,7 +93,14 @@ export function AddRecipeModal({ isOpen, onClose, onSave, editMode = false, init
         calorias: 0,
         imagen: imagenPath,
         link: link.trim() || undefined,
-        ingredientes: selectedIngredientes,
+        ingredientes: selectedIngredientes.map(ingName => {
+          const ingData = ingredientesMap.get(ingName);
+          return {
+            nombre: ingName,
+            tipo: ingData?.tipo,
+            color: ingData?.color,
+          };
+        }),
       });
       handleClose();
     } catch (err) {
