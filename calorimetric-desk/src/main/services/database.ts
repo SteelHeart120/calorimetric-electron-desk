@@ -102,6 +102,30 @@ function initializeSchema() {
       db.exec('ALTER TABLE Ingredientes ADD COLUMN tipo_id INTEGER REFERENCES TipoIngrediente(id)');
       console.log('tipo_id column added successfully');
     }
+
+    // Check if MenuPaciente table exists
+    const menuPacienteExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='MenuPaciente'"
+    ).get();
+
+    if (!menuPacienteExists) {
+      console.log('Creating MenuPaciente table...');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS MenuPaciente (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          idPaciente INTEGER NOT NULL,
+          idTiempos INTEGER NOT NULL,
+          idTipoIngrediente INTEGER,
+          Codigo INTEGER,
+          Cantidad REAL,
+          Nombre TEXT,
+          FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
+          FOREIGN KEY (idTiempos) REFERENCES Tiempos(id),
+          FOREIGN KEY (idTipoIngrediente) REFERENCES TipoIngrediente(id)
+        );
+      `);
+      console.log('MenuPaciente table created successfully');
+    }
   }
 }
 
@@ -165,6 +189,46 @@ function createTables() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS MenuPaciente (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      idPaciente INTEGER NOT NULL,
+      idTiempos INTEGER NOT NULL,
+      idTipoIngrediente INTEGER,
+      Codigo INTEGER,
+      Cantidad REAL,
+      Nombre TEXT,
+      FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
+      FOREIGN KEY (idTiempos) REFERENCES Tiempos(id),
+      FOREIGN KEY (idTipoIngrediente) REFERENCES TipoIngrediente(id)
+    );
+  `);
+
+  db.exec(`
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno I');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno II');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno III');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno IV');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno V');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Almuerzo I');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Almuerzo II');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Almuerzo III');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Almuerzo IV');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Almuerzo V');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Comida I');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Comida II');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Comida III');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Comida IV');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Comida V');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Post-entreno I');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Post-entreno II');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Post-entreno III');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Post-entreno IV');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Post-entreno V');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Cena I');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Cena II');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Cena III');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Cena IV');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Cena V');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Comida');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Cena');

@@ -35,6 +35,19 @@ export interface TipoIngrediente {
   color: string;
 }
 
+export interface MenuItemData {
+  codigo: string;
+  cantidad: string;
+  nombre: string;
+  color: string;
+  tiempoName: string;
+}
+
+export interface SaveMenuData {
+  idPaciente: number;
+  items: MenuItemData[];
+}
+
 export interface ElectronAPI {
   onSaveMenu: (callback: () => void) => void;
   onShowAddPatient: (callback: () => void) => void;
@@ -65,6 +78,11 @@ export interface ElectronAPI {
   };
   tiposIngrediente: {
     getAll: () => Promise<TipoIngrediente[]>;
+  };
+  menu: {
+    save: (data: SaveMenuData) => Promise<void>;
+    getByPaciente: (idPaciente: number) => Promise<any[]>;
+    delete: (idPaciente: number) => Promise<void>;
   };
   saveRecipeImage: (buffer: ArrayBuffer, fileName: string) => Promise<string>;
 }

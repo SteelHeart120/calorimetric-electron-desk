@@ -84,11 +84,50 @@ const Dashboard = () => {
     await refreshPacientes();
   };
 
-  const handleSelectPaciente = (paciente: { id: number; nombre: string }) => {
+  const handleSelectPaciente = async (paciente: { id: number; nombre: string }) => {
     setSelectedPaciente(paciente);
     setPacienteSearch(paciente.nombre);
     // Close dropdown by clearing the filtered list
     // The dropdown will close because filteredPacientes will be empty when exact match
+    
+    // Load saved menu for this patient
+    try {
+      const savedMenu = await window.electronAPI?.menu.getByPaciente(paciente.id);
+      if (savedMenu && savedMenu.length > 0) {
+        // Reconstruct mealTables from saved menu
+        const newTables = [...initialMealTables];
+        
+        // Group menu items by tiempo
+        const menuByTiempo: { [key: string]: any[] } = {};
+        savedMenu.forEach((item: any) => {
+          if (!menuByTiempo[item.tiempoName]) {
+            menuByTiempo[item.tiempoName] = [];
+          }
+          menuByTiempo[item.tiempoName].push({
+            codigo: item.Codigo?.toString() || '',
+            cantidad: item.Cantidad?.toString() || '',
+            nombre: item.Nombre || '',
+            color: item.tipoColor || '#9CA3AF',
+          });
+        });
+        
+        // Update tables with saved data
+        newTables.forEach((table) => {
+          if (menuByTiempo[table.title]) {
+            table.items = menuByTiempo[table.title];
+          }
+        });
+        
+        setMealTables(newTables);
+        console.log('Menu cargado para paciente:', paciente.nombre);
+      } else {
+        // Reset to initial state if no saved menu
+        setMealTables(initialMealTables);
+      }
+    } catch (error) {
+      console.error('Error loading menu:', error);
+      setMealTables(initialMealTables);
+    }
   };
 
   // Initialize meal tables with empty items
@@ -144,8 +183,40 @@ const Dashboard = () => {
     console.log('Agregar nuevo menú');
   };
 
-  const handleSaveMenu = () => {
-    console.log('Guardar menú', mealTables);
+  const handleSaveMenu = async () => {
+    if (!selectedPaciente) {
+      alert('Por favor selecciona un paciente primero');
+      return;
+    }
+
+    try {
+      // Prepare menu items with tiempo names
+      const items: any[] = [];
+      
+      mealTables.forEach((table) => {
+        table.items.forEach((item) => {
+          items.push({
+            codigo: item.codigo,
+            cantidad: item.cantidad,
+            nombre: item.nombre,
+            color: item.color,
+            tiempoName: table.title, // Include the tiempo name
+          });
+        });
+      });
+
+      const menuData = {
+        idPaciente: selectedPaciente.id,
+        items: items,
+      };
+
+      await window.electronAPI?.menu.save(menuData);
+      alert('Menú guardado exitosamente');
+      console.log('Menú guardado:', menuData);
+    } catch (error) {
+      console.error('Error al guardar menú:', error);
+      alert('Error al guardar el menú');
+    }
   };
 
   const handleCellChange = (tableIndex: number, itemIndex: number, field: keyof MealItem, value: string) => {
@@ -248,6 +319,41 @@ const Dashboard = () => {
     setMealTables(newTables);
   };
 
+  // TEST FUNCTION: Fill all menus with random recipes
+  const handleFillTestData = async () => {
+    try {
+      const recipes = await window.electronAPI?.recipes.getAll();
+      if (!recipes || recipes.length === 0) {
+        alert('No hay recetas disponibles');
+        return;
+      }
+
+      const newTables = [...mealTables];
+      
+      newTables.forEach((table, tableIndex) => {
+        // Get a random recipe for this menu
+        const randomRecipe = recipes[tableIndex % recipes.length];
+        
+        // Fill with recipe ingredients
+        const items = randomRecipe.ingredientes.map((ing, idx) => ({
+          codigo: String(idx + 1),
+          cantidad: String(Math.floor(Math.random() * 200) + 50), // Random quantity 50-250
+          nombre: ing.nombre,
+          color: ing.color || '#9CA3AF',
+        }));
+        
+        newTables[tableIndex].items = items;
+      });
+
+      setMealTables(newTables);
+      console.log('Test data filled successfully');
+      alert('Datos de prueba cargados en todos los menús');
+    } catch (error) {
+      console.error('Error filling test data:', error);
+      alert('Error al cargar datos de prueba');
+    }
+  };
+
   const getHeaderColorClasses = (color: 'green' | 'pink') => {
     return color === 'green'
       ? 'bg-emerald-500 text-white dark:bg-emerald-600'
@@ -264,12 +370,18 @@ const Dashboard = () => {
     return (
       <div className="space-y-0">
         {/* Cargar Receta Button */}
-        <div className="mb-4 flex justify-start">
+        <div className="mb-4 flex justify-start gap-2">
           <button
             onClick={() => console.log('Cargar receta')}
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
             Cargar Receta
+          </button>
+          <button
+            onClick={handleFillTestData}
+            className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+          >
+            🧪 Llenar con Datos de Prueba
           </button>
         </div>
 

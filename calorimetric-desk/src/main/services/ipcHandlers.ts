@@ -11,6 +11,9 @@ import {
   getAllIngredientes, getIngredienteById, createIngrediente, updateIngrediente, deleteIngrediente,
   getAllTiposIngrediente
 } from './ingredientesService';
+import {
+  saveMenu, getMenuByPaciente, deleteMenuByPaciente, SaveMenuData
+} from './menuService';
 
 export function registerIpcHandlers() {
   ipcMain.handle('recipes:getAll', async () => {
@@ -182,6 +185,34 @@ export function registerIpcHandlers() {
       return `assets/images/recetas/${uniqueFileName}`;
     } catch (error) {
       console.error('Error saving recipe image:', error);
+      throw error;
+    }
+  });
+
+  // Menu handlers
+  ipcMain.handle('menu:save', async (_, data: SaveMenuData) => {
+    try {
+      return saveMenu(data);
+    } catch (error) {
+      console.error('Error saving menu:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('menu:getByPaciente', async (_, idPaciente: number) => {
+    try {
+      return getMenuByPaciente(idPaciente);
+    } catch (error) {
+      console.error('Error getting menu:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('menu:delete', async (_, idPaciente: number) => {
+    try {
+      return deleteMenuByPaciente(idPaciente);
+    } catch (error) {
+      console.error('Error deleting menu:', error);
       throw error;
     }
   });
