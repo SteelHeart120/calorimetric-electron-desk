@@ -6,6 +6,7 @@ export interface MenuItemData {
   nombre: string;
   color: string;
   tiempoName: string; // The tiempo name (e.g., "Desayuno I", "Almuerzo II")
+  recipeTitle?: string; // The recipe name if added
 }
 
 export interface SaveMenuData {
@@ -25,8 +26,8 @@ export function saveMenu(data: SaveMenuData): void {
 
     // Prepare insert statement
     const insertStmt = db.prepare(`
-      INSERT INTO MenuPaciente (idPaciente, idTiempos, idTipoIngrediente, Codigo, Cantidad, Nombre)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO MenuPaciente (idPaciente, idTiempos, idTipoIngrediente, Codigo, Cantidad, Nombre, RecipeTitle)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     // Insert each menu item
@@ -55,7 +56,8 @@ export function saveMenu(data: SaveMenuData): void {
         tipoId,
         codigo,
         cantidad,
-        item.nombre
+        item.nombre,
+        item.recipeTitle || null
       );
     }
 
@@ -80,6 +82,7 @@ export function getMenuByPaciente(idPaciente: number): any[] {
       m.Codigo,
       m.Cantidad,
       m.Nombre,
+      m.RecipeTitle,
       t.Nombre as tiempoName,
       ti.nombre as tipoNombre,
       ti.color as tipoColor

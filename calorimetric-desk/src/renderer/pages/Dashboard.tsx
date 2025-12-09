@@ -20,6 +20,7 @@ interface MealTable {
   title: string;
   items: MealItem[];
   headerColor: 'green' | 'pink';
+  recipeTitle?: string;
 }
 
 const Dashboard = () => {
@@ -31,8 +32,15 @@ const Dashboard = () => {
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
   const [isLoadRecetaModalOpen, setIsLoadRecetaModalOpen] = useState(false);
   const [selectedMenuIndex, setSelectedMenuIndex] = useState<number | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const { pacientes, createPaciente, refresh: refreshPacientes } = usePacientes();
+
+  // Toast notification helper
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // Load tipos from database on mount
   useEffect(() => {
@@ -99,6 +107,7 @@ const Dashboard = () => {
         
         // Group menu items by tiempo
         const menuByTiempo: { [key: string]: any[] } = {};
+        const recipeTitlesByTiempo: { [key: string]: string } = {};
         savedMenu.forEach((item: any) => {
           if (!menuByTiempo[item.tiempoName]) {
             menuByTiempo[item.tiempoName] = [];
@@ -109,12 +118,17 @@ const Dashboard = () => {
             nombre: item.Nombre || '',
             color: item.tipoColor || '#9CA3AF',
           });
+          // Store recipeTitle (same for all items in a tiempo)
+          if (item.RecipeTitle && !recipeTitlesByTiempo[item.tiempoName]) {
+            recipeTitlesByTiempo[item.tiempoName] = item.RecipeTitle;
+          }
         });
         
         // Update tables with saved data
         newTables.forEach((table) => {
           if (menuByTiempo[table.title]) {
             table.items = menuByTiempo[table.title];
+            table.recipeTitle = recipeTitlesByTiempo[table.title];
           }
         });
         
@@ -185,7 +199,7 @@ const Dashboard = () => {
 
   const handleSaveMenu = async () => {
     if (!selectedPaciente) {
-      alert('Por favor selecciona un paciente primero');
+      showToast('Por favor selecciona un paciente primero', 'error');
       return;
     }
 
@@ -201,6 +215,7 @@ const Dashboard = () => {
             nombre: item.nombre,
             color: item.color,
             tiempoName: table.title, // Include the tiempo name
+            recipeTitle: table.recipeTitle || null,
           });
         });
       });
@@ -211,11 +226,11 @@ const Dashboard = () => {
       };
 
       await window.electronAPI?.menu.save(menuData);
-      alert('Menú guardado exitosamente');
+      showToast('Menú guardado exitosamente', 'success');
       console.log('Menú guardado:', menuData);
     } catch (error) {
       console.error('Error al guardar menú:', error);
-      alert('Error al guardar el menú');
+      showToast('Error al guardar el menú', 'error');
     }
   };
 
@@ -291,32 +306,39 @@ const Dashboard = () => {
     setIsLoadRecetaModalOpen(true);
   };
 
-  const handleAddRecipeIngredients = (ingredients: RecipeIngredient[]) => {
+  const handleAddRecipeIngredients = (recipe: any) => {
     if (selectedMenuIndex === null) return;
     
-    console.log('Adding ingredients to menu index:', selectedMenuIndex);
-    console.log('Ingredients received:', ingredients);
+    console.log('Adding recipe to menu index:', selectedMenuIndex);
+    console.log('Recipe:', recipe);
     
-    const newTables = [...mealTables];
-    const newItems = ingredients.map(ing => ({
-      codigo: '',
-      cantidad: '',
-      nombre: ing.nombre,
-      color: ing.color || '#9CA3AF',
-    }));
-    
-    console.log('New items created:', newItems);
-    
-    // Replace existing items or add if there's only one empty item
-    if (newTables[selectedMenuIndex].items.length === 1 && 
-        newTables[selectedMenuIndex].items[0].nombre === '') {
-      newTables[selectedMenuIndex].items = newItems;
-    } else {
-      newTables[selectedMenuIndex].items.push(...newItems);
-    }
-    
-    console.log('Updated menu table:', newTables[selectedMenuIndex]);
-    setMealTables(newTables);
+    // Use setTimeout to ensure modal closes properly before state update
+    setTimeout(() => {
+      const newTables = [...mealTables];
+      const newItems = recipe.ingredientes.map((ing: RecipeIngredient) => ({
+        codigo: '',
+        cantidad: '',
+        nombre: ing.nombre,
+        color: ing.color || '#9CA3AF',
+      }));
+      
+      console.log('New items created:', newItems);
+      
+      // Replace existing items or add if there's only one empty item
+      if (newTables[selectedMenuIndex].items.length === 1 && 
+          newTables[selectedMenuIndex].items[0].nombre === '') {
+        newTables[selectedMenuIndex].items = newItems;
+      } else {
+        newTables[selectedMenuIndex].items = newItems;
+      }
+      
+      // Set recipe title
+      newTables[selectedMenuIndex].recipeTitle = recipe.nombre;
+      
+      console.log('Updated menu table:', newTables[selectedMenuIndex]);
+      setMealTables(newTables);
+      showToast(`Receta "${recipe.nombre}" cargada exitosamente`, 'success');
+    }, 100);
   };
 
   // TEST FUNCTION: Fill all menus with random recipes
@@ -324,7 +346,7 @@ const Dashboard = () => {
     try {
       const recipes = await window.electronAPI?.recipes.getAll();
       if (!recipes || recipes.length === 0) {
-        alert('No hay recetas disponibles');
+        showToast('No hay recetas disponibles', 'error');
         return;
       }
 
@@ -343,14 +365,15 @@ const Dashboard = () => {
         }));
         
         newTables[tableIndex].items = items;
+        newTables[tableIndex].recipeTitle = randomRecipe.nombre;
       });
 
       setMealTables(newTables);
       console.log('Test data filled successfully');
-      alert('Datos de prueba cargados en todos los menús');
+      showToast('Datos de prueba cargados en todos los menús', 'success');
     } catch (error) {
       console.error('Error filling test data:', error);
-      alert('Error al cargar datos de prueba');
+      showToast('Error al cargar datos de prueba', 'error');
     }
   };
 
@@ -369,14 +392,8 @@ const Dashboard = () => {
 
     return (
       <div className="space-y-0">
-        {/* Cargar Receta Button */}
-        <div className="mb-4 flex justify-start gap-2">
-          <button
-            onClick={() => console.log('Cargar receta')}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Cargar Receta
-          </button>
+        {/* Test Data Button */}
+        <div className="mb-4 flex justify-start">
           <button
             onClick={handleFillTestData}
             className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
@@ -406,28 +423,35 @@ const Dashboard = () => {
                     </button>
                   </div>
 
+                  {/* Recipe Title (if exists) */}
+                  {table.recipeTitle && (
+                    <div className="px-4 text-center py-1.5 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
+                      Receta: {table.recipeTitle}
+                    </div>
+                  )}
+
                   {/* Table */}
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900">
                         <tr>
-                          <th className="w-16 px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <th className="w-16 px-2  text-left text-xs font-medium text-gray-500 dark:text-gray-400">
                             Codigo
                           </th>
-                          <th className="w-16 px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <th className="w-16 px-2 py-0.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
                             Cantidad
                           </th>
-                          <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <th className="px-2 py-0.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
                             Nombre
                           </th>
-                          <th className="w-10 px-2 py-1">
+                          <th className="w-10 px-2 py-0.5">
                           </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
                         {table.items.map((item, itemIndex) => (
                           <tr key={itemIndex}>
-                            <td className="w-16 px-2 py-1">
+                            <td className="w-16 px-2">
                               <input
                                 type="text"
                                 value={item.codigo}
@@ -443,32 +467,32 @@ const Dashboard = () => {
                                   backgroundColor: item.color,
                                   color: getTextColor(item.color),
                                 }}
-                                className="w-full rounded border border-gray-300 px-2 py-0.5 text-xs font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                className="w-full rounded border border-gray-300 px-2 py-0 text-xs font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                                 placeholder="0"
                                 title="Click derecho para cambiar color"
                               />
                             </td>
-                            <td className="w-16 px-2 py-1">
+                            <td className="w-16 px-2 py-0.5">
                               <input
                                 type="number"
                                 value={item.cantidad}
                                 onChange={(e) =>
                                   handleCellChange(actualTableIndex, itemIndex, 'cantidad', e.target.value)
                                 }
-                                className="w-full rounded border-gray-300 bg-transparent px-2 py-0.5 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
+                                className="w-full rounded border-gray-300 bg-transparent px-2 py-0 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
                               />
                             </td>
-                            <td className="px-2 py-1">
+                            <td className="px-2 py-0.5">
                               <input
                                 type="text"
                                 value={item.nombre}
                                 onChange={(e) =>
                                   handleCellChange(actualTableIndex, itemIndex, 'nombre', e.target.value)
                                 }
-                                className="w-full rounded border-gray-300 bg-transparent px-2 py-0.5 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
+                                className="w-full rounded border-gray-300 bg-transparent px-2 py-0 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
                               />
                             </td>
-                            <td className="w-10 px-2 py-1">
+                            <td className="w-10 px-2 py-0.5">
                               <button
                                 onClick={() => handleDeleteRow(actualTableIndex, itemIndex)}
                                 className="rounded p-0.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
@@ -1360,7 +1384,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Search and Add Button */}
+      {/* Header with Search */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex-1 sm:max-w-xs relative">
           <label htmlFor="paciente-search" className="sr-only">
@@ -1390,13 +1414,6 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-        <button
-          onClick={handleAddMenu}
-          className="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-        >
-          <HiOutlinePlus className="h-5 w-5" />
-          Agregar Menu
-        </button>
       </div>
 
       {/* Add Patient Modal */}
@@ -1450,6 +1467,23 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+          <div
+            className={`rounded-lg px-6 py-3 shadow-lg ${
+              toast.type === 'success'
+                ? 'bg-green-600 text-white'
+                : toast.type === 'error'
+                ? 'bg-red-600 text-white'
+                : 'bg-blue-600 text-white'
+            }`}
+          >
+            <p className="text-sm font-medium">{toast.message}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

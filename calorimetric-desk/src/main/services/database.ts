@@ -119,12 +119,24 @@ function initializeSchema() {
           Codigo INTEGER,
           Cantidad REAL,
           Nombre TEXT,
+          RecipeTitle TEXT,
           FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
           FOREIGN KEY (idTiempos) REFERENCES Tiempos(id),
           FOREIGN KEY (idTipoIngrediente) REFERENCES TipoIngrediente(id)
         );
       `);
       console.log('MenuPaciente table created successfully');
+    }
+
+    // Check if RecipeTitle column exists in MenuPaciente
+    const recipeTitleColumnExists = db.prepare(
+      "SELECT COUNT(*) as count FROM pragma_table_info('MenuPaciente') WHERE name='RecipeTitle'"
+    ).get() as any;
+
+    if (recipeTitleColumnExists.count === 0) {
+      console.log('Adding RecipeTitle column to MenuPaciente table...');
+      db.exec('ALTER TABLE MenuPaciente ADD COLUMN RecipeTitle TEXT');
+      console.log('RecipeTitle column added successfully');
     }
   }
 }
@@ -197,6 +209,7 @@ function createTables() {
       Codigo INTEGER,
       Cantidad REAL,
       Nombre TEXT,
+      RecipeTitle TEXT,
       FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
       FOREIGN KEY (idTiempos) REFERENCES Tiempos(id),
       FOREIGN KEY (idTipoIngrediente) REFERENCES TipoIngrediente(id)

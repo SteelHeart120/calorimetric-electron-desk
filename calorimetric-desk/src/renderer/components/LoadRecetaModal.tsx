@@ -5,7 +5,7 @@ import { Recipe, RecipeIngredient } from '../types/electron';
 interface LoadRecetaModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectRecipe: (ingredients: RecipeIngredient[]) => void;
+  onSelectRecipe: (recipe: Recipe) => void;
   menuTitle: string;
 }
 
@@ -54,8 +54,8 @@ export const LoadRecetaModal: React.FC<LoadRecetaModalProps> = ({
 
   const handleAgregarReceta = () => {
     if (selectedReceta) {
-      console.log('Adding recipe ingredients:', selectedReceta.ingredientes);
-      onSelectRecipe(selectedReceta.ingredientes);
+      console.log('Adding recipe:', selectedReceta.nombre);
+      onSelectRecipe(selectedReceta);
       onClose();
     }
   };

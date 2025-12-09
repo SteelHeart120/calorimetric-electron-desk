@@ -41,6 +41,7 @@ export interface MenuItemData {
   nombre: string;
   color: string;
   tiempoName: string;
+  recipeTitle?: string;
 }
 
 export interface SaveMenuData {
