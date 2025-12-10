@@ -33,6 +33,7 @@ const Dashboard = () => {
   const [isLoadRecetaModalOpen, setIsLoadRecetaModalOpen] = useState(false);
   const [selectedMenuIndex, setSelectedMenuIndex] = useState<number | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [tipos, setTipos] = useState<TipoIngrediente[]>([]);
 
   const { pacientes, createPaciente, refresh: refreshPacientes } = usePacientes();
 
@@ -47,8 +48,10 @@ const Dashboard = () => {
     const loadTipos = async () => {
       try {
         const tipos = await window.electronAPI?.tiposIngrediente.getAll();
+        console.log('Loaded tipos ingrediente:', tipos);
         if (tipos) {
           COLOR_OPTIONS = tipos.map(t => ({ value: t.color, label: t.nombre }));
+          setTipos(tipos);
         }
       } catch (error) {
         console.error('Error loading tipos:', error);
@@ -235,9 +238,21 @@ const Dashboard = () => {
   };
 
   const handleCellChange = (tableIndex: number, itemIndex: number, field: keyof MealItem, value: string) => {
-    const newTables = [...mealTables];
-    newTables[tableIndex].items[itemIndex][field] = value;
-    setMealTables(newTables);
+    setMealTables(prevTables => {
+      const newTables = prevTables.map((table, tIdx) => {
+        if (tIdx !== tableIndex) return table;
+        
+        return {
+          ...table,
+          items: table.items.map((item, iIdx) => {
+            if (iIdx !== itemIndex) return item;
+            return { ...item, [field]: value };
+          })
+        };
+      });
+      
+      return newTables;
+    });
   };
 
   const getTextColor = (bgColor: string) => {
@@ -383,6 +398,104 @@ const Dashboard = () => {
       : 'bg-pink-500 text-white dark:bg-pink-600';
   };
 
+  // Map tipo names to their colors for display
+  const tipoColors = useMemo(() => {
+    const colorMap: { [key: string]: string } = {};
+    tipos.forEach(tipo => {
+      colorMap[tipo.nombre] = tipo.color;
+    });
+    return colorMap;
+  }, [tipos]);
+
+  // Calculate Grupo Alimenticio sums based on menu data
+  const grupoAlimenticioData = useMemo(() => {
+    // Map color to tipo name for matching
+    const colorToTipo: { [key: string]: string } = {};
+    tipos.forEach(tipo => {
+      colorToTipo[tipo.color.toUpperCase()] = tipo.nombre;
+    });
+
+    // Initialize data structure: { tipoName: [tiempo1, tiempo2, tiempo3, tiempo4, tiempo5] }
+    const sums: { [key: string]: number[] } = {};
+    
+    // Define the tiempo groups (5 tables per tiempo)
+    const tiempoGroups = [
+      { name: 'Desayuno', start: 0, end: 5 },     // Tiempo 1: Desayuno I-V
+      { name: 'Almuerzo', start: 5, end: 10 },    // Tiempo 2: Almuerzo I-V
+      { name: 'Comida', start: 10, end: 15 },     // Tiempo 3: Comida I-V
+      { name: 'Post-entreno', start: 15, end: 20 }, // Tiempo 4: Post-entreno I-V
+      { name: 'Cena', start: 20, end: 25 },       // Tiempo 5: Cena I-V
+    ];
+
+    // Calculate sums for each tiempo group
+    tiempoGroups.forEach((grupo, tiempoIndex) => {
+      // Process tables in this tiempo group
+      for (let tableIndex = grupo.start; tableIndex < grupo.end; tableIndex++) {
+        const table = mealTables[tableIndex];
+        if (!table) continue;
+
+        // Process each item in the table
+        table.items.forEach(item => {
+          if (!item.codigo || item.codigo.trim() === '') return;
+          
+          const codigoValue = parseFloat(item.codigo) || 0;
+          if (codigoValue === 0) return;
+
+          // Get tipo name from color
+          const tipoName = colorToTipo[item.color.toUpperCase()];
+          if (!tipoName) return;
+
+          // Initialize array if needed
+          if (!sums[tipoName]) {
+            sums[tipoName] = [0, 0, 0, 0, 0];
+          }
+
+          // Add to the appropriate tiempo
+          sums[tipoName][tiempoIndex] += codigoValue;
+        });
+      }
+    });
+
+    return sums;
+  }, [mealTables, tipos]);
+
+  // Calculate totals for Calorias Totales and % de la dieta rows
+  const patronTotals = useMemo(() => {
+    const foodGroups = ['Lácteos', 'Frutas', 'Verduras', 'Leguminosas', 'Cereales', 'Azúcares', 'AOAM', 'AOAB', 'AOAMB', 'Lípidos', 'Líp+proteína'];
+    const valuesPerGroup = [95, 60, 25, 60, 95, 40, 45, 45, 90, 45, 70]; // Corresponding values for ene calculation
+    // Calculate ene values for each tiempo (columns 2, 4, 6, 8, 10)
+    const eneByTiempo = [0, 0, 0, 0, 0]; // 5 tiempos
+    const caloriasByGroup: number[] = [];
+    
+    foodGroups.forEach(group => {
+      let groupCaloriesTotal = 0;
+      for (let i = 0; i < 5; i++) {
+        const eneValue = (((grupoAlimenticioData[group]?.[i] || 0) / 7) * valuesPerGroup[foodGroups.indexOf(group)]);
+        eneByTiempo[i] += eneValue;
+        groupCaloriesTotal += eneValue;
+      }
+      caloriasByGroup.push(groupCaloriesTotal);
+    });
+    
+    // Total calories (sum of all Calorias column)
+    const totalCalorias = caloriasByGroup.reduce((sum, val) => sum + val, 0);
+    
+    // Calculate % de la dieta for each tiempo
+    const percentByTiempo = eneByTiempo.map(eneVal => 
+      totalCalorias > 0 ? (eneVal * 1 / totalCalorias) * 100 : 0
+    );
+    
+    // Total % (sum of all %)
+    const totalPercent = percentByTiempo.reduce((sum, val) => sum + val, 0);
+    
+    return {
+      eneByTiempo,
+      totalCalorias,
+      percentByTiempo,
+      totalPercent
+    };
+  }, [grupoAlimenticioData]);
+
   const renderMenuView = () => {
     // Group tables into rows of 5
     const rows = [];
@@ -392,6 +505,23 @@ const Dashboard = () => {
 
     return (
       <div className="space-y-0">
+        {/* Color Reference */}
+        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Referencia de Colores:</h3>
+          <div className="flex flex-wrap gap-3">
+            {tipos.map((tipo) => (
+              <div key={tipo.id} className="flex items-center gap-2">
+                <div
+                  className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600"
+                  style={{ backgroundColor: tipo.color }}
+                  title={tipo.nombre}
+                />
+                <span className="text-xs text-gray-600 dark:text-gray-400">{tipo.nombre}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Test Data Button */}
         <div className="mb-4 flex justify-start">
           <button
@@ -474,7 +604,7 @@ const Dashboard = () => {
                             </td>
                             <td className="w-16 px-2 py-0.5">
                               <input
-                                type="number"
+                                type="text"
                                 value={item.cantidad}
                                 onChange={(e) =>
                                   handleCellChange(actualTableIndex, itemIndex, 'cantidad', e.target.value)
@@ -998,10 +1128,8 @@ const Dashboard = () => {
                   <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
                   <th className="bg-gray-400 px-2 py-2 text-center text-xs font-semibold text-white">5</th>
                   <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
-                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
-                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
-                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
-                  <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white">Calorias</th>
+                  <th className="bg-yellow-500 px-2 py-2 text-center text-xs font-semibold text-white">Calorias</th>
+                  <th className="bg-gray-100 dark:bg-gray-900 px-2 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
                 </tr>
                 {/* Second Header Row */}
                 <tr className="divide-x divide-gray-300 bg-gray-100 dark:divide-gray-700 dark:bg-gray-900">
@@ -1016,249 +1144,270 @@ const Dashboard = () => {
                   <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">ene</th>
                   <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Equiv</th>
                   <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">ene</th>
-                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
-                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
-                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
                   <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Total</th>
+                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lacteos</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lácteos']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lácteos']?.[0] || 0) / 7) * 95))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lácteos']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lácteos']?.[1] || 0) / 7) * 95))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lácteos']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lácteos']?.[2] || 0) / 7) * 95))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lácteos']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lácteos']?.[3] || 0) / 7) * 95))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lácteos']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lácteos']?.[4] || 0) / 7) * 95))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['Lácteos']?.[0] || 0) / 7) * 95)) +
+                    Math.round((((grupoAlimenticioData['Lácteos']?.[1] || 0) / 7) * 95)) +
+                    Math.round((((grupoAlimenticioData['Lácteos']?.[2] || 0) / 7) * 95)) +
+                    Math.round((((grupoAlimenticioData['Lácteos']?.[3] || 0) / 7) * 95)) +
+                    Math.round((((grupoAlimenticioData['Lácteos']?.[4] || 0) / 7) * 95))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Frutas</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Frutas']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Frutas']?.[0] || 0) / 7) * 60))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Frutas']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Frutas']?.[1] || 0) / 7) * 60))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Frutas']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Frutas']?.[2] || 0) / 7) * 60))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Frutas']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Frutas']?.[3] || 0) / 7) * 60))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Frutas']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Frutas']?.[4] || 0) / 7) * 60))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['Frutas']?.[0] || 0) / 7) * 60)) +
+                    Math.round((((grupoAlimenticioData['Frutas']?.[1] || 0) / 7) * 60)) +
+                    Math.round((((grupoAlimenticioData['Frutas']?.[2] || 0) / 7) * 60)) +
+                    Math.round((((grupoAlimenticioData['Frutas']?.[3] || 0) / 7) * 60)) +
+                    Math.round((((grupoAlimenticioData['Frutas']?.[4] || 0) / 7) * 60))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Verduras</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Verduras']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Verduras']?.[0] || 0) / 7) * 25))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Verduras']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Verduras']?.[1] || 0) / 7) * 25))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Verduras']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Verduras']?.[2] || 0) / 7) * 25))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Verduras']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Verduras']?.[3] || 0) / 7) * 25))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Verduras']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Verduras']?.[4] || 0) / 7) * 25))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['Verduras']?.[0] || 0) / 7) * 25)) +
+                    Math.round((((grupoAlimenticioData['Verduras']?.[1] || 0) / 7) * 25)) +
+                    Math.round((((grupoAlimenticioData['Verduras']?.[2] || 0) / 7) * 25)) +
+                    Math.round((((grupoAlimenticioData['Verduras']?.[3] || 0) / 7) * 25)) +
+                    Math.round((((grupoAlimenticioData['Verduras']?.[4] || 0) / 7) * 25))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Leguminosas</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Cereales sin grasa</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Leguminosas']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Leguminosas']?.[0] || 0) / 7) * 120))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Leguminosas']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Leguminosas']?.[1] || 0) / 7) * 120))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Leguminosas']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Leguminosas']?.[2] || 0) / 7) * 120))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Leguminosas']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Leguminosas']?.[3] || 0) / 7) * 120))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Leguminosas']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Leguminosas']?.[4] || 0) / 7) * 120))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['Leguminosas']?.[0] || 0) / 7) * 120)) +
+                    Math.round((((grupoAlimenticioData['Leguminosas']?.[1] || 0) / 7) * 120)) +
+                    Math.round((((grupoAlimenticioData['Leguminosas']?.[2] || 0) / 7) * 120)) +
+                    Math.round((((grupoAlimenticioData['Leguminosas']?.[3] || 0) / 7) * 120)) +
+                    Math.round((((grupoAlimenticioData['Leguminosas']?.[4] || 0) / 7) * 120))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Cereales con grasa</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Azucares sin grasa</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Cereales</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Cereales']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Cereales']?.[0] || 0) / 7) * 70))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Cereales']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Cereales']?.[1] || 0) / 7) * 70))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Cereales']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Cereales']?.[2] || 0) / 7) * 70))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Cereales']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Cereales']?.[3] || 0) / 7) * 70))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Cereales']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Cereales']?.[4] || 0) / 7) * 70))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['Cereales']?.[0] || 0) / 7) * 70)) +
+                    Math.round((((grupoAlimenticioData['Cereales']?.[1] || 0) / 7) * 70)) +
+                    Math.round((((grupoAlimenticioData['Cereales']?.[2] || 0) / 7) * 70)) +
+                    Math.round((((grupoAlimenticioData['Cereales']?.[3] || 0) / 7) * 70)) +
+                    Math.round((((grupoAlimenticioData['Cereales']?.[4] || 0) / 7) * 70))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOA Moderado en grasa</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOA bajo en grasa</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Azucares</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Azúcares']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Azúcares']?.[0] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Azúcares']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Azúcares']?.[1] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Azúcares']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Azúcares']?.[2] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Azúcares']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Azúcares']?.[3] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Azúcares']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Azúcares']?.[4] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['Azúcares']?.[0] || 0) / 7) * 40)) +
+                    Math.round((((grupoAlimenticioData['Azúcares']?.[1] || 0) / 7) * 40)) +
+                    Math.round((((grupoAlimenticioData['Azúcares']?.[2] || 0) / 7) * 40)) +
+                    Math.round((((grupoAlimenticioData['Azúcares']?.[3] || 0) / 7) * 40)) +
+                    Math.round((((grupoAlimenticioData['Azúcares']?.[4] || 0) / 7) * 40))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOA muy bajo en grasa</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOAM</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAM']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAM']?.[0] || 0) / 7) * 75))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAM']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAM']?.[1] || 0) / 7) * 75))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAM']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAM']?.[2] || 0) / 7) * 75))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAM']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAM']?.[3] || 0) / 7) * 75))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAM']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAM']?.[4] || 0) / 7) * 75))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['AOAM']?.[0] || 0) / 7) * 75)) +
+                    Math.round((((grupoAlimenticioData['AOAM']?.[1] || 0) / 7) * 75)) +
+                    Math.round((((grupoAlimenticioData['AOAM']?.[2] || 0) / 7) * 75)) +
+                    Math.round((((grupoAlimenticioData['AOAM']?.[3] || 0) / 7) * 75)) +
+                    Math.round((((grupoAlimenticioData['AOAM']?.[4] || 0) / 7) * 75))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lipidos con proteina</td>
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOAB</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAB']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAB']?.[0] || 0) / 7) * 55))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAB']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAB']?.[1] || 0) / 7) * 55))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAB']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAB']?.[2] || 0) / 7) * 55))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAB']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAB']?.[3] || 0) / 7) * 55))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAB']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAB']?.[4] || 0) / 7) * 55))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['AOAB']?.[0] || 0) / 7) * 55)) +
+                    Math.round((((grupoAlimenticioData['AOAB']?.[1] || 0) / 7) * 55)) +
+                    Math.round((((grupoAlimenticioData['AOAB']?.[2] || 0) / 7) * 55)) +
+                    Math.round((((grupoAlimenticioData['AOAB']?.[3] || 0) / 7) * 55)) +
+                    Math.round((((grupoAlimenticioData['AOAB']?.[4] || 0) / 7) * 55))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOAMB</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAMB']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAMB']?.[0] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAMB']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAMB']?.[1] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAMB']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAMB']?.[2] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAMB']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAMB']?.[3] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['AOAMB']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['AOAMB']?.[4] || 0) / 7) * 40))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['AOAMB']?.[0] || 0) / 7) * 40)) +
+                    Math.round((((grupoAlimenticioData['AOAMB']?.[1] || 0) / 7) * 40)) +
+                    Math.round((((grupoAlimenticioData['AOAMB']?.[2] || 0) / 7) * 40)) +
+                    Math.round((((grupoAlimenticioData['AOAMB']?.[3] || 0) / 7) * 40)) +
+                    Math.round((((grupoAlimenticioData['AOAMB']?.[4] || 0) / 7) * 40))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lipidos</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lípidos']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lípidos']?.[0] || 0) / 7) * 45))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lípidos']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lípidos']?.[1] || 0) / 7) * 45))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lípidos']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lípidos']?.[2] || 0) / 7) * 45))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lípidos']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lípidos']?.[3] || 0) / 7) * 45))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Lípidos']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Lípidos']?.[4] || 0) / 7) * 45))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['Lípidos']?.[0] || 0) / 7) * 45)) +
+                    Math.round((((grupoAlimenticioData['Lípidos']?.[1] || 0) / 7) * 45)) +
+                    Math.round((((grupoAlimenticioData['Lípidos']?.[2] || 0) / 7) * 45)) +
+                    Math.round((((grupoAlimenticioData['Lípidos']?.[3] || 0) / 7) * 45)) +
+                    Math.round((((grupoAlimenticioData['Lípidos']?.[4] || 0) / 7) * 45))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                </tr>
+                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lip/Pt</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Líp+proteína']?.[0] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Líp+proteína']?.[0] || 0) / 7) * 65))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Líp+proteína']?.[1] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Líp+proteína']?.[1] || 0) / 7) * 65))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Líp+proteína']?.[2] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Líp+proteína']?.[2] || 0) / 7) * 65))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Líp+proteína']?.[3] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Líp+proteína']?.[3] || 0) / 7) * 65))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{((grupoAlimenticioData['Líp+proteína']?.[4] || 0) / 7).toFixed(2)}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round((((grupoAlimenticioData['Líp+proteína']?.[4] || 0) / 7) * 65))}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(
+                    Math.round((((grupoAlimenticioData['Líp+proteína']?.[0] || 0) / 7) * 65)) +
+                    Math.round((((grupoAlimenticioData['Líp+proteína']?.[1] || 0) / 7) * 65)) +
+                    Math.round((((grupoAlimenticioData['Líp+proteína']?.[2] || 0) / 7) * 65)) +
+                    Math.round((((grupoAlimenticioData['Líp+proteína']?.[3] || 0) / 7) * 65)) +
+                    Math.round((((grupoAlimenticioData['Líp+proteína']?.[4] || 0) / 7) * 65))
+                  )}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 bg-gray-100 hover:bg-gray-200 dark:divide-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white">Calorias Totales</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round(patronTotals.eneByTiempo[0])}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round(patronTotals.eneByTiempo[1])}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round(patronTotals.eneByTiempo[2])}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round(patronTotals.eneByTiempo[3])}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round(patronTotals.eneByTiempo[4])}</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round(patronTotals.totalCalorias)}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 bg-gray-100 hover:bg-gray-200 dark:divide-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white">% de la dieta</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{patronTotals.percentByTiempo[0].toFixed(2)}%</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{patronTotals.percentByTiempo[1].toFixed(2)}%</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{patronTotals.percentByTiempo[2].toFixed(2)}%</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{patronTotals.percentByTiempo[3].toFixed(2)}%</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{patronTotals.percentByTiempo[4].toFixed(2)}%</td>
+                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{patronTotals.totalPercent.toFixed(2)}%</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
               </tbody>
@@ -1286,93 +1435,93 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Lacteos</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['Lácteos'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['Lácteos'] ? getTextColor(tipoColors['Lácteos']) : 'inherit' }}>Lacteos</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lácteos'] ? getTextColor(tipoColors['Lácteos']) : 'inherit' }}>{grupoAlimenticioData['Lácteos']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lácteos'] ? getTextColor(tipoColors['Lácteos']) : 'inherit' }}>{grupoAlimenticioData['Lácteos']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lácteos'] ? getTextColor(tipoColors['Lácteos']) : 'inherit' }}>{grupoAlimenticioData['Lácteos']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lácteos'] ? getTextColor(tipoColors['Lácteos']) : 'inherit' }}>{grupoAlimenticioData['Lácteos']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lácteos'] ? getTextColor(tipoColors['Lácteos']) : 'inherit' }}>{grupoAlimenticioData['Lácteos']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Frutas</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['Frutas'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['Frutas'] ? getTextColor(tipoColors['Frutas']) : 'inherit' }}>Frutas</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Frutas'] ? getTextColor(tipoColors['Frutas']) : 'inherit' }}>{grupoAlimenticioData['Frutas']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Frutas'] ? getTextColor(tipoColors['Frutas']) : 'inherit' }}>{grupoAlimenticioData['Frutas']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Frutas'] ? getTextColor(tipoColors['Frutas']) : 'inherit' }}>{grupoAlimenticioData['Frutas']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Frutas'] ? getTextColor(tipoColors['Frutas']) : 'inherit' }}>{grupoAlimenticioData['Frutas']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Frutas'] ? getTextColor(tipoColors['Frutas']) : 'inherit' }}>{grupoAlimenticioData['Frutas']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Verduras</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['Verduras'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['Verduras'] ? getTextColor(tipoColors['Verduras']) : 'inherit' }}>Verduras</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Verduras'] ? getTextColor(tipoColors['Verduras']) : 'inherit' }}>{grupoAlimenticioData['Verduras']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Verduras'] ? getTextColor(tipoColors['Verduras']) : 'inherit' }}>{grupoAlimenticioData['Verduras']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Verduras'] ? getTextColor(tipoColors['Verduras']) : 'inherit' }}>{grupoAlimenticioData['Verduras']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Verduras'] ? getTextColor(tipoColors['Verduras']) : 'inherit' }}>{grupoAlimenticioData['Verduras']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Verduras'] ? getTextColor(tipoColors['Verduras']) : 'inherit' }}>{grupoAlimenticioData['Verduras']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Leguminosas</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['Leguminosas'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['Leguminosas'] ? getTextColor(tipoColors['Leguminosas']) : 'inherit' }}>Leguminosas</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Leguminosas'] ? getTextColor(tipoColors['Leguminosas']) : 'inherit' }}>{grupoAlimenticioData['Leguminosas']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Leguminosas'] ? getTextColor(tipoColors['Leguminosas']) : 'inherit' }}>{grupoAlimenticioData['Leguminosas']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Leguminosas'] ? getTextColor(tipoColors['Leguminosas']) : 'inherit' }}>{grupoAlimenticioData['Leguminosas']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Leguminosas'] ? getTextColor(tipoColors['Leguminosas']) : 'inherit' }}>{grupoAlimenticioData['Leguminosas']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Leguminosas'] ? getTextColor(tipoColors['Leguminosas']) : 'inherit' }}>{grupoAlimenticioData['Leguminosas']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Cereales</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['Cereales'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['Cereales'] ? getTextColor(tipoColors['Cereales']) : 'inherit' }}>Cereales</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Cereales'] ? getTextColor(tipoColors['Cereales']) : 'inherit' }}>{grupoAlimenticioData['Cereales']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Cereales'] ? getTextColor(tipoColors['Cereales']) : 'inherit' }}>{grupoAlimenticioData['Cereales']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Cereales'] ? getTextColor(tipoColors['Cereales']) : 'inherit' }}>{grupoAlimenticioData['Cereales']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Cereales'] ? getTextColor(tipoColors['Cereales']) : 'inherit' }}>{grupoAlimenticioData['Cereales']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Cereales'] ? getTextColor(tipoColors['Cereales']) : 'inherit' }}>{grupoAlimenticioData['Cereales']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Azucares</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['Azúcares'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['Azúcares'] ? getTextColor(tipoColors['Azúcares']) : 'inherit' }}>Azucares</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Azúcares'] ? getTextColor(tipoColors['Azúcares']) : 'inherit' }}>{grupoAlimenticioData['Azúcares']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Azúcares'] ? getTextColor(tipoColors['Azúcares']) : 'inherit' }}>{grupoAlimenticioData['Azúcares']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Azúcares'] ? getTextColor(tipoColors['Azúcares']) : 'inherit' }}>{grupoAlimenticioData['Azúcares']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Azúcares'] ? getTextColor(tipoColors['Azúcares']) : 'inherit' }}>{grupoAlimenticioData['Azúcares']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Azúcares'] ? getTextColor(tipoColors['Azúcares']) : 'inherit' }}>{grupoAlimenticioData['Azúcares']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">AOAM</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['AOAM'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['AOAM'] ? getTextColor(tipoColors['AOAM']) : 'inherit' }}>AOAM</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAM'] ? getTextColor(tipoColors['AOAM']) : 'inherit' }}>{grupoAlimenticioData['AOAM']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAM'] ? getTextColor(tipoColors['AOAM']) : 'inherit' }}>{grupoAlimenticioData['AOAM']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAM'] ? getTextColor(tipoColors['AOAM']) : 'inherit' }}>{grupoAlimenticioData['AOAM']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAM'] ? getTextColor(tipoColors['AOAM']) : 'inherit' }}>{grupoAlimenticioData['AOAM']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAM'] ? getTextColor(tipoColors['AOAM']) : 'inherit' }}>{grupoAlimenticioData['AOAM']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">AOAB</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['AOAB'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['AOAB'] ? getTextColor(tipoColors['AOAB']) : 'inherit' }}>AOAB</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAB'] ? getTextColor(tipoColors['AOAB']) : 'inherit' }}>{grupoAlimenticioData['AOAB']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAB'] ? getTextColor(tipoColors['AOAB']) : 'inherit' }}>{grupoAlimenticioData['AOAB']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAB'] ? getTextColor(tipoColors['AOAB']) : 'inherit' }}>{grupoAlimenticioData['AOAB']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAB'] ? getTextColor(tipoColors['AOAB']) : 'inherit' }}>{grupoAlimenticioData['AOAB']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAB'] ? getTextColor(tipoColors['AOAB']) : 'inherit' }}>{grupoAlimenticioData['AOAB']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">AOAMB</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['AOAMB'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['AOAMB'] ? getTextColor(tipoColors['AOAMB']) : 'inherit' }}>AOAMB</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAMB'] ? getTextColor(tipoColors['AOAMB']) : 'inherit' }}>{grupoAlimenticioData['AOAMB']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAMB'] ? getTextColor(tipoColors['AOAMB']) : 'inherit' }}>{grupoAlimenticioData['AOAMB']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAMB'] ? getTextColor(tipoColors['AOAMB']) : 'inherit' }}>{grupoAlimenticioData['AOAMB']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAMB'] ? getTextColor(tipoColors['AOAMB']) : 'inherit' }}>{grupoAlimenticioData['AOAMB']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['AOAMB'] ? getTextColor(tipoColors['AOAMB']) : 'inherit' }}>{grupoAlimenticioData['AOAMB']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Lipidos</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['Lípidos'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['Lípidos'] ? getTextColor(tipoColors['Lípidos']) : 'inherit' }}>Lipidos</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lípidos'] ? getTextColor(tipoColors['Lípidos']) : 'inherit' }}>{grupoAlimenticioData['Lípidos']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lípidos'] ? getTextColor(tipoColors['Lípidos']) : 'inherit' }}>{grupoAlimenticioData['Lípidos']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lípidos'] ? getTextColor(tipoColors['Lípidos']) : 'inherit' }}>{grupoAlimenticioData['Lípidos']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lípidos'] ? getTextColor(tipoColors['Lípidos']) : 'inherit' }}>{grupoAlimenticioData['Lípidos']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Lípidos'] ? getTextColor(tipoColors['Lípidos']) : 'inherit' }}>{grupoAlimenticioData['Lípidos']?.[4] || 0}</td>
                 </tr>
-                <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-2 text-xs text-gray-900 dark:text-white">Lip/Pt</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white"></td>
+                <tr className="divide-x divide-gray-200 transition-colors" style={{ backgroundColor: tipoColors['Líp+proteína'] || 'transparent' }}>
+                  <td className="px-3 py-2 text-xs font-medium" style={{ color: tipoColors['Líp+proteína'] ? getTextColor(tipoColors['Líp+proteína']) : 'inherit' }}>Lip/Pt</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Líp+proteína'] ? getTextColor(tipoColors['Líp+proteína']) : 'inherit' }}>{grupoAlimenticioData['Líp+proteína']?.[0] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Líp+proteína'] ? getTextColor(tipoColors['Líp+proteína']) : 'inherit' }}>{grupoAlimenticioData['Líp+proteína']?.[1] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Líp+proteína'] ? getTextColor(tipoColors['Líp+proteína']) : 'inherit' }}>{grupoAlimenticioData['Líp+proteína']?.[2] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Líp+proteína'] ? getTextColor(tipoColors['Líp+proteína']) : 'inherit' }}>{grupoAlimenticioData['Líp+proteína']?.[3] || 0}</td>
+                  <td className="px-3 py-2 text-center text-xs" style={{ color: tipoColors['Líp+proteína'] ? getTextColor(tipoColors['Líp+proteína']) : 'inherit' }}>{grupoAlimenticioData['Líp+proteína']?.[4] || 0}</td>
                 </tr>
               </tbody>
             </table>

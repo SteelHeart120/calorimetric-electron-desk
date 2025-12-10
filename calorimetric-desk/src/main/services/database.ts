@@ -117,7 +117,7 @@ function initializeSchema() {
           idTiempos INTEGER NOT NULL,
           idTipoIngrediente INTEGER,
           Codigo INTEGER,
-          Cantidad REAL,
+          Cantidad TEXT,
           Nombre TEXT,
           RecipeTitle TEXT,
           FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
@@ -207,7 +207,7 @@ function createTables() {
       idTiempos INTEGER NOT NULL,
       idTipoIngrediente INTEGER,
       Codigo INTEGER,
-      Cantidad REAL,
+      Cantidad TEXT,
       Nombre TEXT,
       RecipeTitle TEXT,
       FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
@@ -250,7 +250,9 @@ function createTables() {
   // Seed TipoIngrediente with initial data
   db.exec(`
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Lácteos', '#808080');
-    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Animales', '#FF6363');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAM', '#f51f1fff');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAB', '#e44444ff');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAMB', '#FF6363');
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Leguminosas', '#A52A2A');
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Verduras', '#008000');
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Cereales', '#FF8C00');
