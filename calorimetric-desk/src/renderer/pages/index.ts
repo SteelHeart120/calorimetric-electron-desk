@@ -10,3 +10,4 @@
 
 export { default as Dashboard } from './Dashboard';
 export { default as Recetario } from './Recetario';
+export { default as Pacientes } from './Pacientes';

@@ -80,7 +80,9 @@ function initializeSchema() {
       // Seed initial tipos
       db.exec(`
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Lácteos', '#808080');
-        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Animales', '#FF6363');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAM', '#f51f1fff');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAB', '#e44444ff');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAMB', '#FF6363');
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Leguminosas', '#A52A2A');
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Verduras', '#008000');
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Cereales', '#FF8C00');
@@ -137,6 +139,26 @@ function initializeSchema() {
       console.log('Adding RecipeTitle column to MenuPaciente table...');
       db.exec('ALTER TABLE MenuPaciente ADD COLUMN RecipeTitle TEXT');
       console.log('RecipeTitle column added successfully');
+    }
+
+    // Check if PacienteIngredientesEvitar table exists
+    const pacienteIngredientesEvitarExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='PacienteIngredientesEvitar'"
+    ).get();
+
+    if (!pacienteIngredientesEvitarExists) {
+      console.log('Creating PacienteIngredientesEvitar table...');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS PacienteIngredientesEvitar (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          idPaciente INTEGER NOT NULL,
+          idIngrediente INTEGER NOT NULL,
+          FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
+          FOREIGN KEY (idIngrediente) REFERENCES Ingredientes(id) ON DELETE CASCADE,
+          UNIQUE(idPaciente, idIngrediente)
+        );
+      `);
+      console.log('PacienteIngredientesEvitar table created successfully');
     }
   }
 }
@@ -217,6 +239,17 @@ function createTables() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS PacienteIngredientesEvitar (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      idPaciente INTEGER NOT NULL,
+      idIngrediente INTEGER NOT NULL,
+      FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
+      FOREIGN KEY (idIngrediente) REFERENCES Ingredientes(id) ON DELETE CASCADE,
+      UNIQUE(idPaciente, idIngrediente)
+    );
+  `);
+
+  db.exec(`
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno I');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno II');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno III');
@@ -277,7 +310,9 @@ function seedInitialData() {
   // Get tipo IDs for reference
   const tipos = {
     lacteos: (db.prepare("SELECT id FROM TipoIngrediente WHERE nombre = 'Lácteos'").get() as any)?.id,
-    animales: (db.prepare("SELECT id FROM TipoIngrediente WHERE nombre = 'Animales'").get() as any)?.id,
+    aoam: (db.prepare("SELECT id FROM TipoIngrediente WHERE nombre = 'AOAM'").get() as any)?.id,
+    aoab: (db.prepare("SELECT id FROM TipoIngrediente WHERE nombre = 'AOAB'").get() as any)?.id,
+    aoamb: (db.prepare("SELECT id FROM TipoIngrediente WHERE nombre = 'AOAMB'").get() as any)?.id,
     leguminosas: (db.prepare("SELECT id FROM TipoIngrediente WHERE nombre = 'Leguminosas'").get() as any)?.id,
     verduras: (db.prepare("SELECT id FROM TipoIngrediente WHERE nombre = 'Verduras'").get() as any)?.id,
     cereales: (db.prepare("SELECT id FROM TipoIngrediente WHERE nombre = 'Cereales'").get() as any)?.id,
@@ -296,15 +331,19 @@ function seedInitialData() {
     { nombre: 'Queso panela', tipo_id: tipos.lacteos },
     { nombre: 'Crema light', tipo_id: tipos.lacteos },
     
-    // Animales
-    { nombre: 'Pollo desmenuzado', tipo_id: tipos.animales },
-    { nombre: 'Pollo', tipo_id: tipos.animales },
-    { nombre: 'Pescado blanco', tipo_id: tipos.animales },
-    { nombre: 'Atún en agua', tipo_id: tipos.animales },
-    { nombre: 'Camarón', tipo_id: tipos.animales },
-    { nombre: 'Huevos', tipo_id: tipos.animales },
-    { nombre: 'Huevo pochado', tipo_id: tipos.animales },
-    { nombre: 'Carne de res magra', tipo_id: tipos.animales },
+    // AOAM (Alimentos Origen Animal Muy Bajo en Grasa)
+    { nombre: 'Pollo desmenuzado', tipo_id: tipos.aoam },
+    { nombre: 'Pollo', tipo_id: tipos.aoam },
+    { nombre: 'Pescado blanco', tipo_id: tipos.aoam },
+    { nombre: 'Atún en agua', tipo_id: tipos.aoam },
+    { nombre: 'Camarón', tipo_id: tipos.aoam },
+    
+    // AOAB (Alimentos Origen Animal Bajo en Grasa)
+    { nombre: 'Huevos', tipo_id: tipos.aoab },
+    { nombre: 'Huevo pochado', tipo_id: tipos.aoab },
+    
+    // AOAMB (Alimentos Origen Animal Moderado/Alto en Grasa)
+    { nombre: 'Carne de res magra', tipo_id: tipos.aoamb },
     
     // Leguminosas
     { nombre: 'Frijoles negros', tipo_id: tipos.leguminosas },

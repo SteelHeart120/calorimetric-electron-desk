@@ -80,18 +80,18 @@ export function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('pacientes:create', async (_, nombre: string) => {
+  ipcMain.handle('pacientes:create', async (_, nombre: string, ingredientesEvitarIds?: number[]) => {
     try {
-      return createPaciente(nombre);
+      return createPaciente(nombre, ingredientesEvitarIds);
     } catch (error) {
       console.error('Error creating paciente:', error);
       throw error;
     }
   });
 
-  ipcMain.handle('pacientes:update', async (_, id: number, nombre: string) => {
+  ipcMain.handle('pacientes:update', async (_, id: number, nombre: string, ingredientesEvitarIds?: number[]) => {
     try {
-      return updatePaciente(id, nombre);
+      return updatePaciente(id, nombre, ingredientesEvitarIds);
     } catch (error) {
       console.error('Error updating paciente:', error);
       throw error;

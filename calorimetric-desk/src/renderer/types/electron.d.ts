@@ -19,6 +19,12 @@ export interface Paciente {
   id: number;
   nombre: string;
   created_at: string;
+  ingredientesEvitar?: IngredienteEvitar[];
+}
+
+export interface IngredienteEvitar {
+  id: number;
+  nombre: string;
 }
 
 export interface Ingrediente {
@@ -66,8 +72,8 @@ export interface ElectronAPI {
   pacientes: {
     getAll: () => Promise<Paciente[]>;
     getById: (id: number) => Promise<Paciente | null>;
-    create: (nombre: string) => Promise<number>;
-    update: (id: number, nombre: string) => Promise<boolean>;
+    create: (nombre: string, ingredientesEvitarIds?: number[]) => Promise<number>;
+    update: (id: number, nombre: string, ingredientesEvitarIds?: number[]) => Promise<boolean>;
     delete: (id: number) => Promise<boolean>;
   };
   ingredientes: {

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import type { NavigationItem } from './components/Sidebar';
-import { Dashboard, Recetario } from './pages';
+import { Dashboard, Recetario, Pacientes } from './pages';
 import { AddRecipeModal, AddIngredienteModal, IngredientesListModal } from './components';
 import { useRecipes, useIngredientes } from './hooks';
 import {
   HiOutlineHome,
   HiOutlineBookOpen,
+  HiOutlineUsers,
 } from 'react-icons/hi2';
 
-type Page = 'dashboard' | 'recetario';
+type Page = 'dashboard' | 'recetario' | 'pacientes';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -95,6 +96,12 @@ const App = () => {
       current: currentPage === 'recetario',
       onClick: () => setCurrentPage('recetario'),
     },
+    {
+      name: 'Pacientes',
+      icon: HiOutlineUsers,
+      current: currentPage === 'pacientes',
+      onClick: () => setCurrentPage('pacientes'),
+    },
   ];
 
   const renderPage = () => {
@@ -103,6 +110,8 @@ const App = () => {
         return <Dashboard />;
       case 'recetario':
         return <Recetario />;
+      case 'pacientes':
+        return <Pacientes />;
       default:
         return <Dashboard />;
     }

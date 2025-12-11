@@ -67,8 +67,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pacientes: {
     getAll: () => ipcRenderer.invoke('pacientes:getAll'),
     getById: (id: number) => ipcRenderer.invoke('pacientes:getById', id),
-    create: (nombre: string) => ipcRenderer.invoke('pacientes:create', nombre),
-    update: (id: number, nombre: string) => ipcRenderer.invoke('pacientes:update', id, nombre),
+    create: (nombre: string, ingredientesEvitarIds?: number[]) => ipcRenderer.invoke('pacientes:create', nombre, ingredientesEvitarIds),
+    update: (id: number, nombre: string, ingredientesEvitarIds?: number[]) => ipcRenderer.invoke('pacientes:update', id, nombre, ingredientesEvitarIds),
     delete: (id: number) => ipcRenderer.invoke('pacientes:delete', id),
   },
   ingredientes: {

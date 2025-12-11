@@ -34,6 +34,8 @@ const Dashboard = () => {
   const [selectedMenuIndex, setSelectedMenuIndex] = useState<number | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [tipos, setTipos] = useState<TipoIngrediente[]>([]);
+  const [masaCorporalCaloriasTotales, setMasaCorporalCaloriasTotales] = useState(66);
+  const [masaCorporalModoFit, setMasaCorporalModoFit] = useState(66);
 
   const { pacientes, createPaciente, refresh: refreshPacientes } = usePacientes();
 
@@ -90,8 +92,7 @@ const Dashboard = () => {
     return filtered;
   }, [pacientes, pacienteSearch, selectedPaciente]);
 
-  const handleSavePatient = async (nombre: string) => {
-    await createPaciente(nombre);
+  const handleSavePatient = async () => {
     await refreshPacientes();
   };
 
@@ -459,6 +460,22 @@ const Dashboard = () => {
     return sums;
   }, [mealTables, tipos]);
 
+  // Calculate sum of all Equiv for each food group across all tiempo columns
+  const equivByGroupsDict = useMemo(() => {
+    const dict: { [key: string]: number } = {};
+    const foodGroups = ['Lácteos', 'Frutas', 'Verduras', 'Leguminosas', 'Cereales', 'Azúcares', 'AOAM', 'AOAB', 'AOAMB', 'Lípidos', 'Líp+proteína'];
+    
+    foodGroups.forEach(group => {
+      let totalEquiv = 0;
+      for (let i = 0; i < 5; i++) {
+        totalEquiv += ((grupoAlimenticioData[group]?.[i] || 0) / 7);
+      }
+      dict[group] = totalEquiv;
+    });
+    
+    return dict;
+  }, [grupoAlimenticioData]);
+
   // Calculate totals for Calorias Totales and % de la dieta rows
   const patronTotals = useMemo(() => {
     const foodGroups = ['Lácteos', 'Frutas', 'Verduras', 'Leguminosas', 'Cereales', 'Azúcares', 'AOAM', 'AOAB', 'AOAMB', 'Lípidos', 'Líp+proteína'];
@@ -496,6 +513,96 @@ const Dashboard = () => {
     };
   }, [grupoAlimenticioData]);
 
+  // Calculate total calories from macronutrients table for percentage calculations
+  const totalCaloriasMacros = useMemo(() => {
+    const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                      (equivByGroupsDict['Frutas'] * 15) +
+                      (equivByGroupsDict['Verduras'] * 4) +
+                      (equivByGroupsDict['Leguminosas'] * 20) +
+                      (equivByGroupsDict['Azúcares'] * 10) +
+                      (equivByGroupsDict['Cereales'] * 15) +
+                      (equivByGroupsDict['Líp+proteína'] * 2);
+    
+    const totalProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                         (equivByGroupsDict['Verduras'] * 2) +
+                         (equivByGroupsDict['Leguminosas'] * 8) +
+                         (equivByGroupsDict['Cereales'] * 2) +
+                         (equivByGroupsDict['AOAMB'] * 7) +
+                         (equivByGroupsDict['AOAB'] * 7) +
+                         (equivByGroupsDict['AOAM'] * 7) +
+                         (equivByGroupsDict['Líp+proteína'] * 2);
+    
+    const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                       (equivByGroupsDict['Leguminosas'] * 1) +
+                       (equivByGroupsDict['AOAMB'] * 1) +
+                       (equivByGroupsDict['AOAB'] * 3) +
+                       (equivByGroupsDict['AOAM'] * 5) +
+                       (equivByGroupsDict['Líp+proteína'] * 5) +
+                       (equivByGroupsDict['Lípidos'] * 5);
+    
+    return (totalCarbs * 4) + (totalProteins * 4) + (totalLipids * 9);
+  }, [equivByGroupsDict]);
+
+  // Calculate total calories from first Macros table (Total row, Calorias column) for Macronutrientes header
+  const totalCaloriasMacrosHeader = useMemo(() => {
+    const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                      (equivByGroupsDict['Frutas'] * 15) +
+                      (equivByGroupsDict['Verduras'] * 4) +
+                      (equivByGroupsDict['Leguminosas'] * 20) +
+                      (equivByGroupsDict['Azúcares'] * 10) +
+                      (equivByGroupsDict['Cereales'] * 15) +
+                      (equivByGroupsDict['Líp+proteína'] * 2);
+    
+    const totalProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                         (equivByGroupsDict['Verduras'] * 2) +
+                         (equivByGroupsDict['Leguminosas'] * 8) +
+                         (equivByGroupsDict['Cereales'] * 2) +
+                         (equivByGroupsDict['AOAMB'] * 7) +
+                         (equivByGroupsDict['AOAB'] * 7) +
+                         (equivByGroupsDict['AOAM'] * 7) +
+                         (equivByGroupsDict['Líp+proteína'] * 2);
+    
+    const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                       (equivByGroupsDict['Leguminosas'] * 1) +
+                       (equivByGroupsDict['AOAMB'] * 1) +
+                       (equivByGroupsDict['AOAB'] * 3) +
+                       (equivByGroupsDict['AOAM'] * 5) +
+                       (equivByGroupsDict['Líp+proteína'] * 5) +
+                       (equivByGroupsDict['Lípidos'] * 5);
+    
+    return (totalCarbs * 4) + (totalProteins * 4) + (totalLipids * 9);
+  }, [equivByGroupsDict]);
+
+  // Calculate total calories from Modo Fit (G column) for percentage calculations
+  const totalCaloriasModoFit = useMemo(() => {
+    const carbsGramos = (equivByGroupsDict['Lácteos'] * 12) +
+                       (equivByGroupsDict['Frutas'] * 15) +
+                       (equivByGroupsDict['Verduras'] * 4) +
+                       (equivByGroupsDict['Leguminosas'] * 20) +
+                       (equivByGroupsDict['Azúcares'] * 10) +
+                       (equivByGroupsDict['Cereales'] * 15) +
+                       (equivByGroupsDict['Líp+proteína'] * 2);
+    
+    const proteinsGramos = (equivByGroupsDict['Lácteos'] * 9) +
+                          (equivByGroupsDict['Verduras'] * 2) +
+                          (equivByGroupsDict['Leguminosas'] * 8) +
+                          (equivByGroupsDict['Cereales'] * 2) +
+                          (equivByGroupsDict['AOAMB'] * 7) +
+                          (equivByGroupsDict['AOAB'] * 7) +
+                          (equivByGroupsDict['AOAM'] * 7) +
+                          (equivByGroupsDict['Líp+proteína'] * 2);
+    
+    const lipidsGramos = (equivByGroupsDict['Lácteos'] * 2) +
+                        (equivByGroupsDict['Leguminosas'] * 1) +
+                        (equivByGroupsDict['AOAMB'] * 1) +
+                        (equivByGroupsDict['AOAB'] * 3) +
+                        (equivByGroupsDict['AOAM'] * 5) +
+                        (equivByGroupsDict['Líp+proteína'] * 5) +
+                        (equivByGroupsDict['Lípidos'] * 5);
+    
+    return (carbsGramos * 4) + (proteinsGramos * 4) + (lipidsGramos * 9);
+  }, [equivByGroupsDict]);
+
   const renderMenuView = () => {
     // Group tables into rows of 5
     const rows = [];
@@ -505,20 +612,45 @@ const Dashboard = () => {
 
     return (
       <div className="space-y-0">
-        {/* Color Reference */}
-        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Referencia de Colores:</h3>
-          <div className="flex flex-wrap gap-3">
-            {tipos.map((tipo) => (
-              <div key={tipo.id} className="flex items-center gap-2">
-                <div
-                  className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600"
-                  style={{ backgroundColor: tipo.color }}
-                  title={tipo.nombre}
-                />
-                <span className="text-xs text-gray-600 dark:text-gray-400">{tipo.nombre}</span>
+        {/* Color Reference and Ingredientes Evitar */}
+        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Left: Color Reference */}
+          <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Referencia de Colores:</h3>
+            <div className="flex flex-wrap gap-3">
+              {tipos.map((tipo) => (
+                <div key={tipo.id} className="flex items-center gap-2">
+                  <div
+                    className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600"
+                    style={{ backgroundColor: tipo.color }}
+                    title={tipo.nombre}
+                  />
+                  <span className="text-xs text-gray-600 dark:text-gray-400">{tipo.nombre}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Ingredientes que Evita */}
+          <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Ingredientes que Evita:</h3>
+            {selectedPaciente && pacientes.find(p => p.id === selectedPaciente.id)?.ingredientesEvitar && 
+             pacientes.find(p => p.id === selectedPaciente.id)!.ingredientesEvitar!.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {pacientes.find(p => p.id === selectedPaciente.id)!.ingredientesEvitar!.map((ing) => (
+                  <span
+                    key={ing.id}
+                    className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                  >
+                    {ing.nombre}
+                  </span>
+                ))}
               </div>
-            ))}
+            ) : (
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                {selectedPaciente ? 'Ninguno' : 'Selecciona un paciente'}
+              </span>
+            )}
           </div>
         </div>
 
@@ -613,14 +745,28 @@ const Dashboard = () => {
                               />
                             </td>
                             <td className="px-2 py-0.5">
-                              <input
-                                type="text"
-                                value={item.nombre}
-                                onChange={(e) =>
-                                  handleCellChange(actualTableIndex, itemIndex, 'nombre', e.target.value)
-                                }
-                                className="w-full rounded border-gray-300 bg-transparent px-2 py-0 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
-                              />
+                              <div className="relative flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={item.nombre}
+                                  onChange={(e) =>
+                                    handleCellChange(actualTableIndex, itemIndex, 'nombre', e.target.value)
+                                  }
+                                  className="w-full rounded border-gray-300 bg-transparent px-2 py-0 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
+                                />
+                                {/* Warning icon if ingredient is in evitar list */}
+                                {selectedPaciente && 
+                                 pacientes.find(p => p.id === selectedPaciente.id)?.ingredientesEvitar?.some(
+                                   ing => ing.nombre.toLowerCase() === item.nombre.toLowerCase()
+                                 ) && (
+                                  <span 
+                                    className="flex-shrink-0 text-orange-500 dark:text-orange-400" 
+                                    title="Este ingrediente no le agrada al paciente"
+                                  >
+                                    ⚠️
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="w-10 px-2 py-0.5">
                               <button
@@ -707,7 +853,7 @@ const Dashboard = () => {
     return (
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Macros Section - Left */}
-        <div className="flex-1 overflow-y-auto max-h-[calc(100vh-250px)]">
+        <div className="flex-[1.5] overflow-y-auto max-h-[calc(100vh-250px)]">
           <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Macros</h2>
           <div className="overflow-x-auto rounded-lg border-2 border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
             <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
@@ -760,35 +906,35 @@ const Dashboard = () => {
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-1.5 text-xs text-gray-900 dark:text-white pl-8">Leche descremada</td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{equivByGroupsDict['Lácteos']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Lácteos'] * 12).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Lácteos'] * 9).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Lácteos'] * 2).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Lácteos'] * 95).toFixed(2)}</td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Fruta</td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{equivByGroupsDict['Frutas']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Frutas'] * 15).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Frutas'] * 60).toFixed(2)}</td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Verdura</td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{equivByGroupsDict['Verduras']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Verduras'] * 4).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Verduras'] * 2).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Verduras'] * 25).toFixed(2)}</td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Leguminosas</td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{equivByGroupsDict['Leguminosas']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Leguminosas'] * 20).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Leguminosas'] * 8).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Leguminosas'] * 1).toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Leguminosas'] * 120).toFixed(2)}</td>
                 </tr>
                 <tr className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-sm font-bold text-blue-600 dark:text-blue-400">Azucar</td>
@@ -800,11 +946,11 @@ const Dashboard = () => {
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Azucares sin grasa</td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{equivByGroupsDict['Azúcares']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Azúcares'] * 10).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Azúcares'] * 40).toFixed(2)}</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Azucares con grasa</td>
@@ -817,7 +963,13 @@ const Dashboard = () => {
                 <tr className="bg-purple-500 hover:bg-purple-600">
                   <td className="px-3 py-1 text-xs font-semibold text-white">Total carbohidratos no cereales</td>
                   <td className="px-3 py-1 text-xs text-white"></td>
-                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white">{(
+                    (equivByGroupsDict['Lácteos'] * 12) +
+                    (equivByGroupsDict['Frutas'] * 15) +
+                    (equivByGroupsDict['Verduras'] * 4) +
+                    (equivByGroupsDict['Leguminosas'] * 20) +
+                    (equivByGroupsDict['Azúcares'] * 10)
+                  ).toFixed(2)}</td>
                   <td className="px-3 py-1 text-xs text-white"></td>
                   <td className="px-3 py-1 text-xs text-white"></td>
                   <td className="px-3 py-1 text-xs text-white"></td>
@@ -832,11 +984,11 @@ const Dashboard = () => {
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Cereales sin grasa</td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{equivByGroupsDict['Cereales']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Cereales'] * 15).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Cereales'] * 2).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Cereales'] * 70).toFixed(2)}</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Cereales con grasa</td>
@@ -850,7 +1002,12 @@ const Dashboard = () => {
                   <td className="px-3 py-1 text-xs font-semibold text-white">Total proteinas no animales</td>
                   <td className="px-3 py-1 text-xs text-white"></td>
                   <td className="px-3 py-1 text-xs text-white"></td>
-                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white">{(
+                    (equivByGroupsDict['Lácteos'] * 9) +
+                    (equivByGroupsDict['Verduras'] * 2) +
+                    (equivByGroupsDict['Leguminosas'] * 8) +
+                    (equivByGroupsDict['Cereales'] * 2)
+                  ).toFixed(2)}</td>
                   <td className="px-3 py-1 text-xs text-white"></td>
                   <td className="px-3 py-1 text-xs text-white"></td>
                 </tr>
@@ -864,27 +1021,27 @@ const Dashboard = () => {
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Muy bajo</td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{equivByGroupsDict['AOAMB']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAMB'] * 7).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAMB'] * 1).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAMB'] * 40).toFixed(2)}</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Bajo</td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{equivByGroupsDict['AOAB']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAB'] * 7).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAB'] * 3).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAB'] * 55).toFixed(2)}</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Moderado</td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{equivByGroupsDict['AOAM']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAM'] * 7).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAM'] * 5).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['AOAM'] * 75).toFixed(2)}</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Alto</td>
@@ -899,32 +1056,75 @@ const Dashboard = () => {
                   <td className="px-3 py-1 text-xs text-white"></td>
                   <td className="px-3 py-1 text-xs text-white"></td>
                   <td className="px-3 py-1 text-xs text-white"></td>
-                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs text-white">{(
+                    (equivByGroupsDict['Lácteos'] * 2) +
+                    (equivByGroupsDict['Leguminosas'] * 1) +
+                    (equivByGroupsDict['AOAMB'] * 1) +
+                    (equivByGroupsDict['AOAB'] * 3) +
+                    (equivByGroupsDict['AOAM'] * 5)
+                  ).toFixed(2)}</td>
                   <td className="px-3 py-1 text-xs text-white"></td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Lipidos con proteina</td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{equivByGroupsDict['Líp+proteína']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Líp+proteína'] * 2).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Líp+proteína'] * 2).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Líp+proteína'] * 5).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Líp+proteína'] * 65).toFixed(2)}</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Lipidos</td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{equivByGroupsDict['Lípidos']?.toFixed(2) || '0.00'}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Lípidos'] * 5).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(equivByGroupsDict['Lípidos'] * 45).toFixed(2)}</td>
                 </tr>
                 <tr className="bg-gray-500 hover:bg-gray-600">
                   <td className="px-3 py-1 text-xs font-bold text-white">Total</td>
                   <td className="px-3 py-1 text-xs text-white"></td>
-                  <td className="px-3 py-1 text-xs text-white"></td>
-                  <td className="px-3 py-1 text-xs text-white"></td>
-                  <td className="px-3 py-1 text-xs text-white"></td>
-                  <td className="px-3 py-1 text-xs text-white"></td>
+                  <td className="px-3 py-1 text-xs font-bold text-purple-300">{(
+                    (equivByGroupsDict['Lácteos'] * 12) +
+                    (equivByGroupsDict['Frutas'] * 15) +
+                    (equivByGroupsDict['Verduras'] * 4) +
+                    (equivByGroupsDict['Leguminosas'] * 20) +
+                    (equivByGroupsDict['Azúcares'] * 10) +
+                    (equivByGroupsDict['Cereales'] * 15) +
+                    (equivByGroupsDict['Líp+proteína'] * 2)
+                  ).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs font-bold text-red-300">{(
+                    (equivByGroupsDict['Lácteos'] * 9) +
+                    (equivByGroupsDict['Verduras'] * 2) +
+                    (equivByGroupsDict['Leguminosas'] * 8) +
+                    (equivByGroupsDict['Cereales'] * 2) +
+                    (equivByGroupsDict['AOAMB'] * 7) +
+                    (equivByGroupsDict['AOAB'] * 7) +
+                    (equivByGroupsDict['AOAM'] * 7) +
+                    (equivByGroupsDict['Líp+proteína'] * 2)
+                  ).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs font-bold text-orange-300">{(
+                    (equivByGroupsDict['Lácteos'] * 2) +
+                    (equivByGroupsDict['Leguminosas'] * 1) +
+                    (equivByGroupsDict['AOAMB'] * 1) +
+                    (equivByGroupsDict['AOAB'] * 3) +
+                    (equivByGroupsDict['AOAM'] * 5) +
+                    (equivByGroupsDict['Líp+proteína'] * 5) +
+                    (equivByGroupsDict['Lípidos'] * 5)
+                  ).toFixed(2)}</td>
+                  <td className="px-3 py-1 text-xs font-bold text-green-300">{(
+                    (equivByGroupsDict['Lácteos'] * 95) +
+                    (equivByGroupsDict['Frutas'] * 60) +
+                    (equivByGroupsDict['Verduras'] * 25) +
+                    (equivByGroupsDict['Leguminosas'] * 120) +
+                    (equivByGroupsDict['Azúcares'] * 40) +
+                    (equivByGroupsDict['Cereales'] * 70) +
+                    (equivByGroupsDict['AOAMB'] * 40) +
+                    (equivByGroupsDict['AOAB'] * 55) +
+                    (equivByGroupsDict['AOAM'] * 75) +
+                    (equivByGroupsDict['Líp+proteína'] * 65) +
+                    (equivByGroupsDict['Lípidos'] * 45)
+                  ).toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>
@@ -933,27 +1133,23 @@ const Dashboard = () => {
           {/* Dividing Line */}
           <div className="my-6 border-t-2 border-gray-400 dark:border-gray-600"></div>
 
-          {/* Labels Section */}
-          <div className="mb-6 flex flex-wrap gap-6">
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
-              CALORIAS TOTALES: <span className="text-blue-600 dark:text-blue-400">0</span>
-            </div>
-            <div className="text-sm font-semibold text-gray-900 dark:text-white">
-              MODO FIT: <span className="text-green-600 dark:text-green-400">0</span>
-            </div>
-          </div>
-
           {/* Two Tables Side by Side - Macronutrients and Reference */}
           <div className="flex flex-col lg:flex-row gap-6 mb-8">
             {/* Left Table - Macronutrients */}
             <div className="flex-shrink-0 overflow-x-auto rounded-lg border-2 border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
               <table className="divide-y divide-gray-300 dark:divide-gray-700">
-                <thead className="bg-gray-400 dark:bg-gray-600">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-white">Macronutriente</th>
+                <thead>
+                  {/* Top Headers - Calorias Totales and Modo Fit */}
+                  <tr className="bg-blue-600 dark:bg-blue-700">
+                    <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-white border-r-2 border-blue-800">CALORIAS TOTALES</th>
+                    <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-white">MODO FIT</th>
+                  </tr>
+                  {/* Column Headers */}
+                  <tr className="bg-gray-400 dark:bg-gray-600">
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-white">Macronutriente</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold text-white">%</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold text-white">Calorias</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-white">Gramos</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-white border-r-2 border-gray-500">Gramos</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold text-white">%</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold text-white">Cal</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold text-white">G</th>
@@ -962,29 +1158,261 @@ const Dashboard = () => {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   <tr className="bg-pink-400 hover:bg-pink-500 transition-colors">
                     <td className="px-4 py-2 text-xs font-medium text-white">Carbohidratos</td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                        (equivByGroupsDict['Frutas'] * 15) +
+                                        (equivByGroupsDict['Verduras'] * 4) +
+                                        (equivByGroupsDict['Leguminosas'] * 20) +
+                                        (equivByGroupsDict['Azúcares'] * 10) +
+                                        (equivByGroupsDict['Cereales'] * 15) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                      const calorias = totalCarbs * 4;
+                      return totalCaloriasMacros > 0 ? ((calorias / totalCaloriasMacros) * 100).toFixed(2) : '0.00';
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                        (equivByGroupsDict['Frutas'] * 15) +
+                                        (equivByGroupsDict['Verduras'] * 4) +
+                                        (equivByGroupsDict['Leguminosas'] * 20) +
+                                        (equivByGroupsDict['Azúcares'] * 10) +
+                                        (equivByGroupsDict['Cereales'] * 15) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                      return (totalCarbs * 4).toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white border-r-2 border-pink-600">{(() => {
+                      const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                        (equivByGroupsDict['Frutas'] * 15) +
+                                        (equivByGroupsDict['Verduras'] * 4) +
+                                        (equivByGroupsDict['Leguminosas'] * 20) +
+                                        (equivByGroupsDict['Azúcares'] * 10) +
+                                        (equivByGroupsDict['Cereales'] * 15) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                      return totalCarbs.toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                        (equivByGroupsDict['Frutas'] * 15) +
+                                        (equivByGroupsDict['Verduras'] * 4) +
+                                        (equivByGroupsDict['Leguminosas'] * 20) +
+                                        (equivByGroupsDict['Azúcares'] * 10) +
+                                        (equivByGroupsDict['Cereales'] * 15) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                      const calorias = totalCarbs * 4;
+                      return totalCaloriasModoFit > 0 ? ((calorias / totalCaloriasModoFit) * 100).toFixed(2) : '0.00';
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                        (equivByGroupsDict['Frutas'] * 15) +
+                                        (equivByGroupsDict['Verduras'] * 4) +
+                                        (equivByGroupsDict['Leguminosas'] * 20) +
+                                        (equivByGroupsDict['Azúcares'] * 10) +
+                                        (equivByGroupsDict['Cereales'] * 15) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                      return (totalCarbs * 4).toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                        (equivByGroupsDict['Frutas'] * 15) +
+                                        (equivByGroupsDict['Verduras'] * 4) +
+                                        (equivByGroupsDict['Leguminosas'] * 20) +
+                                        (equivByGroupsDict['Azúcares'] * 10) +
+                                        (equivByGroupsDict['Cereales'] * 15) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                      return totalCarbs.toFixed(2);
+                    })()}</td>
                   </tr>
                   <tr className="bg-pink-400 hover:bg-pink-500 transition-colors">
                     <td className="px-4 py-2 text-xs font-medium text-white">Proteinas</td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                          (equivByGroupsDict['Verduras'] * 2) +
+                                          (equivByGroupsDict['Leguminosas'] * 8) +
+                                          (equivByGroupsDict['Cereales'] * 2) +
+                                          (equivByGroupsDict['AOAMB'] * 7) +
+                                          (equivByGroupsDict['AOAB'] * 7) +
+                                          (equivByGroupsDict['AOAM'] * 7) +
+                                          (equivByGroupsDict['Líp+proteína'] * 2);
+                      const calorias = totalProteins * 4;
+                      return totalCaloriasMacros > 0 ? ((calorias / totalCaloriasMacros) * 100).toFixed(2) : '0.00';
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                          (equivByGroupsDict['Verduras'] * 2) +
+                                          (equivByGroupsDict['Leguminosas'] * 8) +
+                                          (equivByGroupsDict['Cereales'] * 2) +
+                                          (equivByGroupsDict['AOAMB'] * 7) +
+                                          (equivByGroupsDict['AOAB'] * 7) +
+                                          (equivByGroupsDict['AOAM'] * 7) +
+                                          (equivByGroupsDict['Líp+proteína'] * 2);
+                      return (totalProteins * 4).toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white border-r-2 border-pink-600">{(() => {
+                      const totalProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                          (equivByGroupsDict['Verduras'] * 2) +
+                                          (equivByGroupsDict['Leguminosas'] * 8) +
+                                          (equivByGroupsDict['Cereales'] * 2) +
+                                          (equivByGroupsDict['AOAMB'] * 7) +
+                                          (equivByGroupsDict['AOAB'] * 7) +
+                                          (equivByGroupsDict['AOAM'] * 7) +
+                                          (equivByGroupsDict['Líp+proteína'] * 2);
+                      return totalProteins.toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const modoFitProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                             (equivByGroupsDict['Leguminosas'] * 8) +
+                                             (equivByGroupsDict['AOAMB'] * 7) +
+                                             (equivByGroupsDict['AOAB'] * 7) +
+                                             (equivByGroupsDict['AOAM'] * 7);
+                      const calorias = modoFitProteins * 4;
+                      return totalCaloriasModoFit > 0 ? ((calorias / totalCaloriasModoFit) * 100).toFixed(2) : '0.00';
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const modoFitProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                             (equivByGroupsDict['Leguminosas'] * 8) +
+                                             (equivByGroupsDict['AOAMB'] * 7) +
+                                             (equivByGroupsDict['AOAB'] * 7) +
+                                             (equivByGroupsDict['AOAM'] * 7);
+                      return (modoFitProteins * 4).toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const modoFitProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                             (equivByGroupsDict['Leguminosas'] * 8) +
+                                             (equivByGroupsDict['AOAMB'] * 7) +
+                                             (equivByGroupsDict['AOAB'] * 7) +
+                                             (equivByGroupsDict['AOAM'] * 7);
+                      return modoFitProteins.toFixed(2);
+                    })()}</td>
                   </tr>
                   <tr className="bg-pink-400 hover:bg-pink-500 transition-colors">
                     <td className="px-4 py-2 text-xs font-medium text-white">Lipidos</td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
-                    <td className="px-3 py-2 text-center text-xs text-white"></td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                         (equivByGroupsDict['Leguminosas'] * 1) +
+                                         (equivByGroupsDict['AOAMB'] * 1) +
+                                         (equivByGroupsDict['AOAB'] * 3) +
+                                         (equivByGroupsDict['AOAM'] * 5) +
+                                         (equivByGroupsDict['Líp+proteína'] * 5) +
+                                         (equivByGroupsDict['Lípidos'] * 5);
+                      const calorias = totalLipids * 9;
+                      return totalCaloriasMacros > 0 ? ((calorias / totalCaloriasMacros) * 100).toFixed(2) : '0.00';
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                         (equivByGroupsDict['Leguminosas'] * 1) +
+                                         (equivByGroupsDict['AOAMB'] * 1) +
+                                         (equivByGroupsDict['AOAB'] * 3) +
+                                         (equivByGroupsDict['AOAM'] * 5) +
+                                         (equivByGroupsDict['Líp+proteína'] * 5) +
+                                         (equivByGroupsDict['Lípidos'] * 5);
+                      return (totalLipids * 9).toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white border-r-2 border-pink-600">{(() => {
+                      const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                         (equivByGroupsDict['Leguminosas'] * 1) +
+                                         (equivByGroupsDict['AOAMB'] * 1) +
+                                         (equivByGroupsDict['AOAB'] * 3) +
+                                         (equivByGroupsDict['AOAM'] * 5) +
+                                         (equivByGroupsDict['Líp+proteína'] * 5) +
+                                         (equivByGroupsDict['Lípidos'] * 5);
+                      return totalLipids.toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                         (equivByGroupsDict['Leguminosas'] * 1) +
+                                         (equivByGroupsDict['AOAMB'] * 1) +
+                                         (equivByGroupsDict['AOAB'] * 3) +
+                                         (equivByGroupsDict['AOAM'] * 5) +
+                                         (equivByGroupsDict['Líp+proteína'] * 5) +
+                                         (equivByGroupsDict['Lípidos'] * 5);
+                      const calorias = totalLipids * 9;
+                      return totalCaloriasModoFit > 0 ? ((calorias / totalCaloriasModoFit) * 100).toFixed(2) : '0.00';
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                         (equivByGroupsDict['Leguminosas'] * 1) +
+                                         (equivByGroupsDict['AOAMB'] * 1) +
+                                         (equivByGroupsDict['AOAB'] * 3) +
+                                         (equivByGroupsDict['AOAM'] * 5) +
+                                         (equivByGroupsDict['Líp+proteína'] * 5) +
+                                         (equivByGroupsDict['Lípidos'] * 5);
+                      return (totalLipids * 9).toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white">{(() => {
+                      const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                         (equivByGroupsDict['Leguminosas'] * 1) +
+                                         (equivByGroupsDict['AOAMB'] * 1) +
+                                         (equivByGroupsDict['AOAB'] * 3) +
+                                         (equivByGroupsDict['AOAM'] * 5) +
+                                         (equivByGroupsDict['Líp+proteína'] * 5) +
+                                         (equivByGroupsDict['Lípidos'] * 5);
+                      return totalLipids.toFixed(2);
+                    })()}</td>
+                  </tr>
+                  {/* Total Row */}
+                  <tr className="bg-gray-600 hover:bg-gray-700 transition-colors">
+                    <td className="px-4 py-2 text-xs font-bold text-white">Total</td>
+                    <td colSpan={2} className="px-3 py-2 text-center text-xs font-bold text-white">{(() => {
+                      const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                        (equivByGroupsDict['Frutas'] * 15) +
+                                        (equivByGroupsDict['Verduras'] * 4) +
+                                        (equivByGroupsDict['Leguminosas'] * 20) +
+                                        (equivByGroupsDict['Azúcares'] * 10) +
+                                        (equivByGroupsDict['Cereales'] * 15) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                      const totalProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                          (equivByGroupsDict['Verduras'] * 2) +
+                                          (equivByGroupsDict['Leguminosas'] * 8) +
+                                          (equivByGroupsDict['Cereales'] * 2) +
+                                          (equivByGroupsDict['AOAMB'] * 7) +
+                                          (equivByGroupsDict['AOAB'] * 7) +
+                                          (equivByGroupsDict['AOAM'] * 7) +
+                                          (equivByGroupsDict['Líp+proteína'] * 2);
+                      const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                         (equivByGroupsDict['Leguminosas'] * 1) +
+                                         (equivByGroupsDict['AOAMB'] * 1) +
+                                         (equivByGroupsDict['AOAB'] * 3) +
+                                         (equivByGroupsDict['AOAM'] * 5) +
+                                         (equivByGroupsDict['Líp+proteína'] * 5) +
+                                         (equivByGroupsDict['Lípidos'] * 5);
+                      
+                      if (totalCaloriasMacros === 0) return '0.00';
+                      
+                      const carbsPercent = ((totalCarbs * 4) / totalCaloriasMacros) * 100;
+                      const proteinsPercent = ((totalProteins * 4) / totalCaloriasMacros) * 100;
+                      const lipidsPercent = ((totalLipids * 9) / totalCaloriasMacros) * 100;
+                      
+                      return (carbsPercent + proteinsPercent + lipidsPercent).toFixed(2);
+                    })()}</td>
+                    <td className="px-3 py-2 text-center text-xs text-white border-r-2 border-gray-500"></td>
+                    <td colSpan={2} className="px-3 py-2 text-center text-xs font-bold text-white">{(() => {
+                      const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                        (equivByGroupsDict['Frutas'] * 15) +
+                                        (equivByGroupsDict['Verduras'] * 4) +
+                                        (equivByGroupsDict['Leguminosas'] * 20) +
+                                        (equivByGroupsDict['Azúcares'] * 10) +
+                                        (equivByGroupsDict['Cereales'] * 15) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                      const modoFitProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                             (equivByGroupsDict['Leguminosas'] * 8) +
+                                             (equivByGroupsDict['AOAMB'] * 7) +
+                                             (equivByGroupsDict['AOAB'] * 7) +
+                                             (equivByGroupsDict['AOAM'] * 7);
+                      const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                         (equivByGroupsDict['Leguminosas'] * 1) +
+                                         (equivByGroupsDict['AOAMB'] * 1) +
+                                         (equivByGroupsDict['AOAB'] * 3) +
+                                         (equivByGroupsDict['AOAM'] * 5) +
+                                         (equivByGroupsDict['Líp+proteína'] * 5) +
+                                         (equivByGroupsDict['Lípidos'] * 5);
+                      
+                      if (totalCaloriasModoFit === 0) return '0.00';
+                      
+                      const carbsPercent = ((totalCarbs * 4) / totalCaloriasModoFit) * 100;
+                      const proteinsPercent = ((modoFitProteins * 4) / totalCaloriasModoFit) * 100;
+                      const lipidsPercent = ((totalLipids * 9) / totalCaloriasModoFit) * 100;
+                      
+                      return (carbsPercent + proteinsPercent + lipidsPercent).toFixed(2);
+                    })()}</td>
                     <td className="px-3 py-2 text-center text-xs text-white"></td>
                   </tr>
                 </tbody>
@@ -1004,39 +1432,43 @@ const Dashboard = () => {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#808080' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Lácteos</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-white">{equivByGroupsDict['Lácteos']?.toFixed(2) || '0.00'}</td>
                   </tr>
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#FF6363' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Animales</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-white">{(
+                      (equivByGroupsDict['AOAMB'] || 0) +
+                      (equivByGroupsDict['AOAB'] || 0) +
+                      (equivByGroupsDict['AOAM'] || 0)
+                    ).toFixed(2)}</td>
                   </tr>
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#A52A2A' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Leguminosas</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-white">{equivByGroupsDict['Leguminosas']?.toFixed(2) || '0.00'}</td>
                   </tr>
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#008000' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Verduras</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-white">{equivByGroupsDict['Verduras']?.toFixed(2) || '0.00'}</td>
                   </tr>
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#FF8C00' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Cereales</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-white">{equivByGroupsDict['Cereales']?.toFixed(2) || '0.00'}</td>
                   </tr>
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#8A2BE2' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Frutas</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-white">{equivByGroupsDict['Frutas']?.toFixed(2) || '0.00'}</td>
                   </tr>
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#FFFF00' }}>
                     <td className="px-4 py-2 text-xs font-medium text-gray-900">Lípidos</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-gray-900">{equivByGroupsDict['Lípidos']?.toFixed(2) || '0.00'}</td>
                   </tr>
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#CD661D' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Líp+proteína</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-white">{equivByGroupsDict['Líp+proteína']?.toFixed(2) || '0.00'}</td>
                   </tr>
                   <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#00BFFF' }}>
                     <td className="px-4 py-2 text-xs font-medium text-white">Azúcares</td>
-                    <td className="px-3 py-2 text-xs w-12"></td>
+                    <td className="px-3 py-2 text-center text-xs font-semibold text-white">{equivByGroupsDict['Azúcares']?.toFixed(2) || '0.00'}</td>
                   </tr>
                 </tbody>
               </table>
@@ -1064,39 +1496,106 @@ const Dashboard = () => {
                 </tr>
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800">Masa corporal actual</th>
-                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">66</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">
+                    <input
+                      type="number"
+                      value={masaCorporalCaloriasTotales}
+                      onChange={(e) => setMasaCorporalCaloriasTotales(Number(e.target.value) || 0)}
+                      className="w-16 text-center bg-transparent border-b border-gray-400 dark:border-gray-600 focus:border-blue-500 focus:outline-none"
+                    />
+                  </th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">kg</th>
-                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">66</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">
+                    <input
+                      type="number"
+                      value={masaCorporalModoFit}
+                      onChange={(e) => setMasaCorporalModoFit(Number(e.target.value) || 0)}
+                      className="w-16 text-center bg-transparent border-b border-gray-400 dark:border-gray-600 focus:border-blue-500 focus:outline-none"
+                    />
+                  </th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">kg</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Calorias</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{masaCorporalCaloriasTotales > 0 ? (totalCaloriasMacrosHeader / masaCorporalCaloriasTotales).toFixed(2) : '0.00'}</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">cal/kg</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{masaCorporalModoFit > 0 ? (totalCaloriasMacrosHeader / masaCorporalModoFit).toFixed(2) : '0.00'}</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">cal/kg</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Proteinas</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{(() => {
+                    const totalProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                        (equivByGroupsDict['Verduras'] * 2) +
+                                        (equivByGroupsDict['Leguminosas'] * 8) +
+                                        (equivByGroupsDict['Cereales'] * 2) +
+                                        (equivByGroupsDict['AOAMB'] * 7) +
+                                        (equivByGroupsDict['AOAB'] * 7) +
+                                        (equivByGroupsDict['AOAM'] * 7) +
+                                        (equivByGroupsDict['Líp+proteína'] * 2);
+                    return masaCorporalCaloriasTotales > 0 ? (totalProteins / masaCorporalCaloriasTotales).toFixed(2) : '0.00';
+                  })()}</td>
                   <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{(() => {
+                    const modoFitProteins = (equivByGroupsDict['Lácteos'] * 9) +
+                                           (equivByGroupsDict['Leguminosas'] * 8) +
+                                           (equivByGroupsDict['AOAMB'] * 7) +
+                                           (equivByGroupsDict['AOAB'] * 7) +
+                                           (equivByGroupsDict['AOAM'] * 7);
+                    return masaCorporalModoFit > 0 ? (modoFitProteins / masaCorporalModoFit).toFixed(2) : '0.00';
+                  })()}</td>
                   <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Carbohidratos</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{(() => {
+                    const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                      (equivByGroupsDict['Frutas'] * 15) +
+                                      (equivByGroupsDict['Verduras'] * 4) +
+                                      (equivByGroupsDict['Leguminosas'] * 20) +
+                                      (equivByGroupsDict['Azúcares'] * 10) +
+                                      (equivByGroupsDict['Cereales'] * 15) +
+                                      (equivByGroupsDict['Líp+proteína'] * 2);
+                    return masaCorporalCaloriasTotales > 0 ? (totalCarbs / masaCorporalCaloriasTotales).toFixed(2) : '0.00';
+                  })()}</td>
                   <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{(() => {
+                    const totalCarbs = (equivByGroupsDict['Lácteos'] * 12) +
+                                      (equivByGroupsDict['Frutas'] * 15) +
+                                      (equivByGroupsDict['Verduras'] * 4) +
+                                      (equivByGroupsDict['Leguminosas'] * 20) +
+                                      (equivByGroupsDict['Azúcares'] * 10) +
+                                      (equivByGroupsDict['Cereales'] * 15) +
+                                      (equivByGroupsDict['Líp+proteína'] * 2);
+                    return masaCorporalModoFit > 0 ? (totalCarbs / masaCorporalModoFit).toFixed(2) : '0.00';
+                  })()}</td>
                   <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
                 </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Lipidos</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{(() => {
+                    const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                       (equivByGroupsDict['Leguminosas'] * 1) +
+                                       (equivByGroupsDict['AOAMB'] * 1) +
+                                       (equivByGroupsDict['AOAB'] * 3) +
+                                       (equivByGroupsDict['AOAM'] * 5) +
+                                       (equivByGroupsDict['Líp+proteína'] * 5) +
+                                       (equivByGroupsDict['Lípidos'] * 5);
+                    return masaCorporalCaloriasTotales > 0 ? (totalLipids / masaCorporalCaloriasTotales).toFixed(2) : '0.00';
+                  })()}</td>
                   <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
-                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">0</td>
+                  <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{(() => {
+                    const totalLipids = (equivByGroupsDict['Lácteos'] * 2) +
+                                       (equivByGroupsDict['Leguminosas'] * 1) +
+                                       (equivByGroupsDict['AOAMB'] * 1) +
+                                       (equivByGroupsDict['AOAB'] * 3) +
+                                       (equivByGroupsDict['AOAM'] * 5) +
+                                       (equivByGroupsDict['Líp+proteína'] * 5) +
+                                       (equivByGroupsDict['Lípidos'] * 5);
+                    return masaCorporalModoFit > 0 ? (totalLipids / masaCorporalModoFit).toFixed(2) : '0.00';
+                  })()}</td>
                   <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
                 </tr>
               </tbody>
@@ -1129,7 +1628,6 @@ const Dashboard = () => {
                   <th className="bg-gray-400 px-2 py-2 text-center text-xs font-semibold text-white">5</th>
                   <th className="bg-green-500 px-2 py-2 text-center text-xs font-semibold text-white"></th>
                   <th className="bg-yellow-500 px-2 py-2 text-center text-xs font-semibold text-white">Calorias</th>
-                  <th className="bg-gray-100 dark:bg-gray-900 px-2 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
                 </tr>
                 {/* Second Header Row */}
                 <tr className="divide-x divide-gray-300 bg-gray-100 dark:divide-gray-700 dark:bg-gray-900">
@@ -1145,7 +1643,6 @@ const Dashboard = () => {
                   <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Equiv</th>
                   <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">ene</th>
                   <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white">Total</th>
-                  <th className="px-2 py-1.5 text-center text-xs font-semibold text-gray-900 dark:text-white"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -1168,7 +1665,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['Lácteos']?.[3] || 0) / 7) * 95)) +
                     Math.round((((grupoAlimenticioData['Lácteos']?.[4] || 0) / 7) * 95))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Frutas</td>
@@ -1189,7 +1685,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['Frutas']?.[3] || 0) / 7) * 60)) +
                     Math.round((((grupoAlimenticioData['Frutas']?.[4] || 0) / 7) * 60))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Verduras</td>
@@ -1210,7 +1705,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['Verduras']?.[3] || 0) / 7) * 25)) +
                     Math.round((((grupoAlimenticioData['Verduras']?.[4] || 0) / 7) * 25))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Leguminosas</td>
@@ -1231,7 +1725,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['Leguminosas']?.[3] || 0) / 7) * 120)) +
                     Math.round((((grupoAlimenticioData['Leguminosas']?.[4] || 0) / 7) * 120))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Cereales</td>
@@ -1252,7 +1745,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['Cereales']?.[3] || 0) / 7) * 70)) +
                     Math.round((((grupoAlimenticioData['Cereales']?.[4] || 0) / 7) * 70))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Azucares</td>
@@ -1273,7 +1765,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['Azúcares']?.[3] || 0) / 7) * 40)) +
                     Math.round((((grupoAlimenticioData['Azúcares']?.[4] || 0) / 7) * 40))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOAM</td>
@@ -1294,7 +1785,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['AOAM']?.[3] || 0) / 7) * 75)) +
                     Math.round((((grupoAlimenticioData['AOAM']?.[4] || 0) / 7) * 75))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOAB</td>
@@ -1315,7 +1805,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['AOAB']?.[3] || 0) / 7) * 55)) +
                     Math.round((((grupoAlimenticioData['AOAB']?.[4] || 0) / 7) * 55))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">AOAMB</td>
@@ -1336,7 +1825,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['AOAMB']?.[3] || 0) / 7) * 40)) +
                     Math.round((((grupoAlimenticioData['AOAMB']?.[4] || 0) / 7) * 40))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lipidos</td>
@@ -1357,7 +1845,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['Lípidos']?.[3] || 0) / 7) * 45)) +
                     Math.round((((grupoAlimenticioData['Lípidos']?.[4] || 0) / 7) * 45))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white">Lip/Pt</td>
@@ -1378,7 +1865,6 @@ const Dashboard = () => {
                     Math.round((((grupoAlimenticioData['Líp+proteína']?.[3] || 0) / 7) * 65)) +
                     Math.round((((grupoAlimenticioData['Líp+proteína']?.[4] || 0) / 7) * 65))
                   )}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 bg-gray-100 hover:bg-gray-200 dark:divide-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white">Calorias Totales</td>
@@ -1393,7 +1879,6 @@ const Dashboard = () => {
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round(patronTotals.eneByTiempo[4])}</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{Math.round(patronTotals.totalCalorias)}</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
                 <tr className="divide-x divide-gray-200 bg-gray-100 hover:bg-gray-200 dark:divide-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 transition-colors">
                   <td className="px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white">% de la dieta</td>
@@ -1408,7 +1893,6 @@ const Dashboard = () => {
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{patronTotals.percentByTiempo[4].toFixed(2)}%</td>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white">{patronTotals.totalPercent.toFixed(2)}%</td>
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                 </tr>
               </tbody>
             </table>
