@@ -12,7 +12,14 @@ import {
   getAllTiposIngrediente
 } from './ingredientesService';
 import {
-  saveMenu, getMenuByPaciente, deleteMenuByPaciente, SaveMenuData
+  createMenu,
+  deleteMenuByPaciente,
+  getAllMenuTiempos,
+  getMenuById,
+  listMenusByPaciente,
+  saveMenuItems,
+  CreateMenuData,
+  SaveMenuItemsData
 } from './menuService';
 
 export function registerIpcHandlers() {
@@ -190,20 +197,47 @@ export function registerIpcHandlers() {
   });
 
   // Menu handlers
-  ipcMain.handle('menu:save', async (_, data: SaveMenuData) => {
+  ipcMain.handle('menu:create', async (_, data: CreateMenuData) => {
     try {
-      return saveMenu(data);
+      return createMenu(data);
     } catch (error) {
-      console.error('Error saving menu:', error);
+      console.error('Error creating menu:', error);
       throw error;
     }
   });
 
-  ipcMain.handle('menu:getByPaciente', async (_, idPaciente: number) => {
+  ipcMain.handle('menu:listByPaciente', async (_, idPaciente: number) => {
     try {
-      return getMenuByPaciente(idPaciente);
+      return listMenusByPaciente(idPaciente);
     } catch (error) {
-      console.error('Error getting menu:', error);
+      console.error('Error listing menus:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('menu:getById', async (_, menuId: number) => {
+    try {
+      return getMenuById(menuId);
+    } catch (error) {
+      console.error('Error getting menu by id:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('menu:saveItems', async (_, data: SaveMenuItemsData) => {
+    try {
+      return saveMenuItems(data);
+    } catch (error) {
+      console.error('Error saving menu items:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('menu-tiempos:getAll', async () => {
+    try {
+      return getAllMenuTiempos();
+    } catch (error) {
+      console.error('Error getting MenuTiempos:', error);
       throw error;
     }
   });

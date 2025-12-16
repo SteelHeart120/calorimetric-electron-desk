@@ -16,3 +16,5 @@ export { AddRecipeModal } from './AddRecipeModal';
 export { AddIngredienteModal } from './AddIngredienteModal';
 export { IngredientesListModal } from './IngredientesListModal';
 export { LoadRecetaModal } from './LoadRecetaModal';
+export { LoadMenuModal } from './LoadMenuModal';
+export { NewMenuModal } from './NewMenuModal';

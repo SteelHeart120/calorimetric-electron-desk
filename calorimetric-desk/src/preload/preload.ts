@@ -82,9 +82,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAll: () => ipcRenderer.invoke('tipos-ingrediente:getAll'),
   },
   menu: {
-    save: (data: any) => ipcRenderer.invoke('menu:save', data),
-    getByPaciente: (idPaciente: number) => ipcRenderer.invoke('menu:getByPaciente', idPaciente),
+    create: (data: any) => ipcRenderer.invoke('menu:create', data),
+    listByPaciente: (idPaciente: number) => ipcRenderer.invoke('menu:listByPaciente', idPaciente),
+    getById: (menuId: number) => ipcRenderer.invoke('menu:getById', menuId),
+    saveItems: (data: any) => ipcRenderer.invoke('menu:saveItems', data),
     delete: (idPaciente: number) => ipcRenderer.invoke('menu:delete', idPaciente),
+  },
+  menuTiempos: {
+    getAll: () => ipcRenderer.invoke('menu-tiempos:getAll'),
   },
   saveRecipeImage: (buffer: ArrayBuffer, fileName: string) => ipcRenderer.invoke('save-recipe-image', buffer, fileName),
 });

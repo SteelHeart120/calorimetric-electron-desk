@@ -160,6 +160,136 @@ function initializeSchema() {
       `);
       console.log('PacienteIngredientesEvitar table created successfully');
     }
+
+    // --- New menu system tables / columns (2025-12) ---
+
+    // Create MenuTiempos table (base tiempo names for menu configuration)
+    const menuTiemposExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='MenuTiempos'"
+    ).get();
+
+    if (!menuTiemposExists) {
+      console.log('Creating MenuTiempos table...');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS MenuTiempos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          Nombre TEXT NOT NULL UNIQUE
+        );
+      `);
+      console.log('MenuTiempos table created successfully');
+    }
+
+    // Seed MenuTiempos
+    db.exec(`
+      INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Hidratacion');
+      INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Desayuno');
+      INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Almuerzo');
+      INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Comida');
+      INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Cena');
+      INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Post-entreno');
+    `);
+
+    // Create Menus table (menu header records)
+    const menusExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='Menus'"
+    ).get();
+
+    if (!menusExists) {
+      console.log('Creating Menus table...');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Menus (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          idPaciente INTEGER NOT NULL,
+          nombre TEXT NOT NULL,
+          tiempo1 TEXT NOT NULL,
+          tiempo2 TEXT NOT NULL,
+          tiempo3 TEXT NOT NULL,
+          tiempo4 TEXT NOT NULL,
+          tiempo5 TEXT NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE
+        );
+      `);
+      console.log('Menus table created successfully');
+    }
+
+    // Ensure MenuPaciente has MenuId + NombreTiempo columns
+    const menuIdColumnExists = db.prepare(
+      "SELECT COUNT(*) as count FROM pragma_table_info('MenuPaciente') WHERE name='MenuId'"
+    ).get() as any;
+
+    if (menuIdColumnExists.count === 0) {
+      console.log('Adding MenuId column to MenuPaciente table...');
+      db.exec('ALTER TABLE MenuPaciente ADD COLUMN MenuId INTEGER');
+      console.log('MenuId column added successfully');
+    }
+
+    const nombreTiempoColumnExists = db.prepare(
+      "SELECT COUNT(*) as count FROM pragma_table_info('MenuPaciente') WHERE name='NombreTiempo'"
+    ).get() as any;
+
+    if (nombreTiempoColumnExists.count === 0) {
+      console.log('Adding NombreTiempo column to MenuPaciente table...');
+      db.exec('ALTER TABLE MenuPaciente ADD COLUMN NombreTiempo TEXT');
+      console.log('NombreTiempo column added successfully');
+    }
+
+    // Ensure Tiempos includes Hidratacion I-V (and keep inserts idempotent)
+    db.exec(`
+      INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion I');
+      INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion II');
+      INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion III');
+      INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion IV');
+      INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion V');
+    `);
+
+    // Backfill NombreTiempo from idTiempos if missing
+    db.exec(`
+      UPDATE MenuPaciente
+      SET NombreTiempo = (SELECT Nombre FROM Tiempos WHERE Tiempos.id = MenuPaciente.idTiempos)
+      WHERE (NombreTiempo IS NULL OR NombreTiempo = '');
+    `);
+
+    // Migrate legacy MenuPaciente rows (single menu per patient) into Menus + MenuId
+    try {
+      const legacyPatients = db.prepare(`
+        SELECT DISTINCT idPaciente
+        FROM MenuPaciente
+        WHERE (MenuId IS NULL OR MenuId = '')
+      `).all() as Array<{ idPaciente: number }>;
+
+      const insertMenuStmt = db.prepare(`
+        INSERT INTO Menus (idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const updateMenuIdStmt = db.prepare(`
+        UPDATE MenuPaciente
+        SET MenuId = ?
+        WHERE idPaciente = ? AND (MenuId IS NULL OR MenuId = '')
+      `);
+
+      for (const row of legacyPatients) {
+        // Skip if this patient already has menus
+        const existing = db.prepare('SELECT id FROM Menus WHERE idPaciente = ? LIMIT 1').get(row.idPaciente) as any;
+        if (existing) continue;
+
+        const info = insertMenuStmt.run(
+          row.idPaciente,
+          'Menú',
+          'Desayuno',
+          'Almuerzo',
+          'Comida',
+          'Post-entreno',
+          'Cena'
+        );
+
+        const newMenuId = Number(info.lastInsertRowid);
+        updateMenuIdStmt.run(newMenuId, row.idPaciente);
+      }
+    } catch (error) {
+      console.warn('Legacy menu migration skipped/failed:', error);
+    }
   }
 }
 
@@ -223,15 +353,40 @@ function createTables() {
   `);
 
   db.exec(`
-    CREATE TABLE IF NOT EXISTS MenuPaciente (
+    CREATE TABLE IF NOT EXISTS MenuTiempos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      Nombre TEXT NOT NULL UNIQUE
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS Menus (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       idPaciente INTEGER NOT NULL,
+      nombre TEXT NOT NULL,
+      tiempo1 TEXT NOT NULL,
+      tiempo2 TEXT NOT NULL,
+      tiempo3 TEXT NOT NULL,
+      tiempo4 TEXT NOT NULL,
+      tiempo5 TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS MenuPaciente (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      MenuId INTEGER,
+      idPaciente INTEGER NOT NULL,
       idTiempos INTEGER NOT NULL,
+      NombreTiempo TEXT,
       idTipoIngrediente INTEGER,
       Codigo INTEGER,
       Cantidad TEXT,
       Nombre TEXT,
       RecipeTitle TEXT,
+      FOREIGN KEY (MenuId) REFERENCES Menus(id) ON DELETE CASCADE,
       FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE,
       FOREIGN KEY (idTiempos) REFERENCES Tiempos(id),
       FOREIGN KEY (idTipoIngrediente) REFERENCES TipoIngrediente(id)
@@ -250,11 +405,25 @@ function createTables() {
   `);
 
   db.exec(`
+    INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Hidratacion');
+    INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Desayuno');
+    INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Almuerzo');
+    INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Comida');
+    INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Cena');
+    INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Post-entreno');
+
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno I');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno II');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno III');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno IV');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Desayuno V');
+
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion I');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion II');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion III');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion IV');
+    INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion V');
+
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Almuerzo I');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Almuerzo II');
     INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Almuerzo III');

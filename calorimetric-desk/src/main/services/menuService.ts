@@ -9,50 +9,156 @@ export interface MenuItemData {
   recipeTitle?: string; // The recipe name if added
 }
 
-export interface SaveMenuData {
+export interface MenuTiempo {
+  id: number;
+  Nombre: string;
+}
+
+export interface MenuHeader {
+  id: number;
   idPaciente: number;
+  nombre: string;
+  tiempo1: string;
+  tiempo2: string;
+  tiempo3: string;
+  tiempo4: string;
+  tiempo5: string;
+  created_at: string;
+}
+
+export interface CreateMenuData {
+  idPaciente: number;
+  nombre: string;
+  tiempos: [string, string, string, string, string];
+}
+
+export interface SaveMenuItemsData {
+  menuId: number;
   items: MenuItemData[];
 }
 
-export function saveMenu(data: SaveMenuData): void {
+function getOrCreateTiempoId(nombreTiempo: string): number {
   const db = getDatabase();
-  
+  // Ensure tiempo exists (idempotent)
+  db.prepare("INSERT OR IGNORE INTO Tiempos (Nombre) VALUES (?)").run(nombreTiempo);
+  const row = db.prepare('SELECT id FROM Tiempos WHERE Nombre = ?').get(nombreTiempo) as any;
+  if (!row) throw new Error(`Tiempo not found and could not be created: ${nombreTiempo}`);
+  return Number(row.id);
+}
+
+export function getAllMenuTiempos(): MenuTiempo[] {
+  const db = getDatabase();
+  return db.prepare('SELECT id, Nombre FROM MenuTiempos ORDER BY id ASC').all() as MenuTiempo[];
+}
+
+export function createMenu(data: CreateMenuData): MenuHeader {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    INSERT INTO Menus (idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  const info = stmt.run(
+    data.idPaciente,
+    data.nombre,
+    data.tiempos[0],
+    data.tiempos[1],
+    data.tiempos[2],
+    data.tiempos[3],
+    data.tiempos[4]
+  );
+  const id = Number(info.lastInsertRowid);
+  return getMenuHeaderById(id);
+}
+
+export function listMenusByPaciente(idPaciente: number): MenuHeader[] {
+  const db = getDatabase();
+  return db
+    .prepare(
+      `
+      SELECT id, idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5, created_at
+      FROM Menus
+      WHERE idPaciente = ?
+      ORDER BY datetime(created_at) DESC, id DESC
+    `
+    )
+    .all(idPaciente) as MenuHeader[];
+}
+
+export function getMenuHeaderById(menuId: number): MenuHeader {
+  const db = getDatabase();
+  const menu = db
+    .prepare(
+      `
+      SELECT id, idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5, created_at
+      FROM Menus
+      WHERE id = ?
+    `
+    )
+    .get(menuId) as MenuHeader | undefined;
+  if (!menu) throw new Error(`Menu not found: ${menuId}`);
+  return menu;
+}
+
+export function getMenuById(menuId: number): { menu: MenuHeader; items: any[] } {
+  const db = getDatabase();
+  const menu = getMenuHeaderById(menuId);
+
+  const items = db
+    .prepare(
+      `
+      SELECT 
+        m.id,
+        m.MenuId,
+        m.idPaciente,
+        m.Codigo,
+        m.Cantidad,
+        m.Nombre,
+        m.RecipeTitle,
+        COALESCE(m.NombreTiempo, t.Nombre) as tiempoName,
+        ti.nombre as tipoNombre,
+        ti.color as tipoColor
+      FROM MenuPaciente m
+      JOIN Tiempos t ON m.idTiempos = t.id
+      LEFT JOIN TipoIngrediente ti ON m.idTipoIngrediente = ti.id
+      WHERE m.MenuId = ?
+      ORDER BY t.id, m.id
+    `
+    )
+    .all(menuId);
+
+  return { menu, items };
+}
+
+export function saveMenuItems(data: SaveMenuItemsData): void {
+  const db = getDatabase();
+  const menu = getMenuHeaderById(data.menuId);
+
   try {
-    // Start transaction
     db.prepare('BEGIN TRANSACTION').run();
 
-    // Delete existing menu for this patient
-    db.prepare('DELETE FROM MenuPaciente WHERE idPaciente = ?').run(data.idPaciente);
+    db.prepare('DELETE FROM MenuPaciente WHERE MenuId = ?').run(data.menuId);
 
-    // Prepare insert statement
     const insertStmt = db.prepare(`
-      INSERT INTO MenuPaciente (idPaciente, idTiempos, idTipoIngrediente, Codigo, Cantidad, Nombre, RecipeTitle)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO MenuPaciente (MenuId, idPaciente, idTiempos, NombreTiempo, idTipoIngrediente, Codigo, Cantidad, Nombre, RecipeTitle)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    // Insert each menu item
     for (const item of data.items) {
-      // Skip empty items
       if (!item.nombre.trim()) continue;
 
-      // Get tiempo ID
-      const tiempoRecord = db.prepare('SELECT id FROM Tiempos WHERE Nombre = ?').get(item.tiempoName) as any;
-      if (!tiempoRecord) {
-        console.warn(`Tiempo not found: ${item.tiempoName}`);
-        continue;
-      }
+      const tiempoId = getOrCreateTiempoId(item.tiempoName);
 
-      // Get tipo ingrediente ID from color
       const tipoRecord = db.prepare('SELECT id FROM TipoIngrediente WHERE color = ?').get(item.color) as any;
       const tipoId = tipoRecord ? tipoRecord.id : null;
 
-      // Parse codigo and cantidad
       const codigo = item.codigo ? parseInt(item.codigo, 10) : null;
       const cantidad = item.cantidad ? parseFloat(item.cantidad) : null;
 
       insertStmt.run(
-        data.idPaciente,
-        tiempoRecord.id,
+        data.menuId,
+        menu.idPaciente,
+        tiempoId,
+        item.tiempoName,
         tipoId,
         codigo,
         cantidad,
@@ -61,43 +167,17 @@ export function saveMenu(data: SaveMenuData): void {
       );
     }
 
-    // Commit transaction
     db.prepare('COMMIT').run();
-    console.log(`Menu saved successfully for patient ${data.idPaciente}`);
+    console.log(`Menu items saved successfully for menuId ${data.menuId}`);
   } catch (error) {
-    // Rollback on error
     db.prepare('ROLLBACK').run();
-    console.error('Error saving menu:', error);
+    console.error('Error saving menu items:', error);
     throw error;
   }
 }
 
-export function getMenuByPaciente(idPaciente: number): any[] {
-  const db = getDatabase();
-  
-  const menu = db.prepare(`
-    SELECT 
-      m.id,
-      m.idPaciente,
-      m.Codigo,
-      m.Cantidad,
-      m.Nombre,
-      m.RecipeTitle,
-      t.Nombre as tiempoName,
-      ti.nombre as tipoNombre,
-      ti.color as tipoColor
-    FROM MenuPaciente m
-    JOIN Tiempos t ON m.idTiempos = t.id
-    LEFT JOIN TipoIngrediente ti ON m.idTipoIngrediente = ti.id
-    WHERE m.idPaciente = ?
-    ORDER BY t.id, m.id
-  `).all(idPaciente);
-
-  return menu;
-}
-
 export function deleteMenuByPaciente(idPaciente: number): void {
   const db = getDatabase();
-  db.prepare('DELETE FROM MenuPaciente WHERE idPaciente = ?').run(idPaciente);
-  console.log(`Menu deleted for patient ${idPaciente}`);
+  db.prepare('DELETE FROM Menus WHERE idPaciente = ?').run(idPaciente);
+  console.log(`Menus deleted for patient ${idPaciente}`);
 }

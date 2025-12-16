@@ -50,9 +50,32 @@ export interface MenuItemData {
   recipeTitle?: string;
 }
 
-export interface SaveMenuData {
+export interface MenuHeader {
+  id: number;
   idPaciente: number;
+  nombre: string;
+  tiempo1: string;
+  tiempo2: string;
+  tiempo3: string;
+  tiempo4: string;
+  tiempo5: string;
+  created_at: string;
+}
+
+export interface CreateMenuData {
+  idPaciente: number;
+  nombre: string;
+  tiempos: [string, string, string, string, string];
+}
+
+export interface SaveMenuItemsData {
+  menuId: number;
   items: MenuItemData[];
+}
+
+export interface MenuTiempo {
+  id: number;
+  Nombre: string;
 }
 
 export interface ElectronAPI {
@@ -87,9 +110,14 @@ export interface ElectronAPI {
     getAll: () => Promise<TipoIngrediente[]>;
   };
   menu: {
-    save: (data: SaveMenuData) => Promise<void>;
-    getByPaciente: (idPaciente: number) => Promise<any[]>;
+    create: (data: CreateMenuData) => Promise<MenuHeader>;
+    listByPaciente: (idPaciente: number) => Promise<MenuHeader[]>;
+    getById: (menuId: number) => Promise<{ menu: MenuHeader; items: any[] }>;
+    saveItems: (data: SaveMenuItemsData) => Promise<void>;
     delete: (idPaciente: number) => Promise<void>;
+  };
+  menuTiempos: {
+    getAll: () => Promise<MenuTiempo[]>;
   };
   saveRecipeImage: (buffer: ArrayBuffer, fileName: string) => Promise<string>;
 }
