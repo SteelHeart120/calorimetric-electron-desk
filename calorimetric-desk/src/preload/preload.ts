@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onSaveMenu: (callback: () => void) => {
     ipcRenderer.on('save-menu', callback);
   },
+  onExportMenu: (callback: () => void) => {
+    ipcRenderer.on('export-menu', callback);
+  },
   onShowAddPatient: (callback: () => void) => {
     ipcRenderer.on('show-add-patient', callback);
   },
@@ -87,6 +90,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getById: (menuId: number) => ipcRenderer.invoke('menu:getById', menuId),
     saveItems: (data: any) => ipcRenderer.invoke('menu:saveItems', data),
     delete: (idPaciente: number) => ipcRenderer.invoke('menu:delete', idPaciente),
+    exportToWord: (menuTables: any[], menuNombre: string) => ipcRenderer.invoke('menu:exportToWord', menuTables, menuNombre),
   },
   menuTiempos: {
     getAll: () => ipcRenderer.invoke('menu-tiempos:getAll'),

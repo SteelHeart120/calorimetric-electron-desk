@@ -50,6 +50,13 @@ const createWindow = () => {
             mainWindow.webContents.send('save-menu');
           }
         },
+        {
+          label: 'Exportar Menú',
+          accelerator: 'CmdOrCtrl+E',
+          click: () => {
+            mainWindow.webContents.send('export-menu');
+          }
+        },
         { type: 'separator' },
         {
           label: 'Exit',

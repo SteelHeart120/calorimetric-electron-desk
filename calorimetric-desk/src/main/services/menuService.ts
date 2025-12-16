@@ -114,12 +114,14 @@ export function getMenuById(menuId: number): { menu: MenuHeader; items: any[] } 
         m.Cantidad,
         m.Nombre,
         m.RecipeTitle,
+        r.link as RecipeLink,
         COALESCE(m.NombreTiempo, t.Nombre) as tiempoName,
         ti.nombre as tipoNombre,
         ti.color as tipoColor
       FROM MenuPaciente m
       JOIN Tiempos t ON m.idTiempos = t.id
       LEFT JOIN TipoIngrediente ti ON m.idTipoIngrediente = ti.id
+      LEFT JOIN Recetas r ON m.RecipeTitle = r.nombre
       WHERE m.MenuId = ?
       ORDER BY t.id, m.id
     `

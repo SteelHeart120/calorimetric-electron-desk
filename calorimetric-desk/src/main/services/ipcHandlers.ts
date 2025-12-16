@@ -21,6 +21,7 @@ import {
   CreateMenuData,
   SaveMenuItemsData
 } from './menuService';
+import { exportMenuToWord } from './exportMenuService';
 
 export function registerIpcHandlers() {
   ipcMain.handle('recipes:getAll', async () => {
@@ -247,6 +248,15 @@ export function registerIpcHandlers() {
       return deleteMenuByPaciente(idPaciente);
     } catch (error) {
       console.error('Error deleting menu:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('menu:exportToWord', async (_, menuTables: any[], menuNombre: string) => {
+    try {
+      return await exportMenuToWord(menuTables, menuNombre);
+    } catch (error) {
+      console.error('Error exporting menu to Word:', error);
       throw error;
     }
   });

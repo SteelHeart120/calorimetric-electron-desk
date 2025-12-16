@@ -21,6 +21,7 @@ interface MealTable {
   items: MealItem[];
   headerColor: 'green' | 'pink';
   recipeTitle?: string;
+  recipeLink?: string;
 }
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V'] as const;
@@ -172,7 +173,7 @@ const Dashboard = () => {
 
       const items = result.items || [];
       const menuByTiempo: { [key: string]: any[] } = {};
-      const recipeTitlesByTiempo: { [key: string]: string } = {};
+      const recipeTitlesByTiempo: { [key: string]: { title: string; link?: string } } = {};
 
       items.forEach((item: any) => {
         const key = item.tiempoName;
@@ -187,14 +188,17 @@ const Dashboard = () => {
         });
 
         if (item.RecipeTitle && !recipeTitlesByTiempo[key]) {
-          recipeTitlesByTiempo[key] = item.RecipeTitle;
+          recipeTitlesByTiempo[key] = { title: item.RecipeTitle, link: item.RecipeLink };
         }
       });
 
       newTables.forEach((table) => {
         if (menuByTiempo[table.title]) {
           table.items = menuByTiempo[table.title];
-          table.recipeTitle = recipeTitlesByTiempo[table.title];
+          if (recipeTitlesByTiempo[table.title]) {
+            table.recipeTitle = recipeTitlesByTiempo[table.title].title;
+            table.recipeLink = recipeTitlesByTiempo[table.title].link;
+          }
         }
       });
 
@@ -310,6 +314,50 @@ const Dashboard = () => {
       };
     }
   }, [mealTables, currentMenuId, selectedPaciente]);
+
+  // Listen for export menu event from Electron menu
+  React.useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.onExportMenu(() => {
+        handleExportMenu();
+      });
+
+      return () => {
+        window.electronAPI.removeAllListeners('export-menu');
+      };
+    }
+  }, [mealTables, currentMenuNombre]);
+
+  const handleExportMenu = async () => {
+    if (!window.electronAPI?.menu?.exportToWord) {
+      showToast('Función de exportación no disponible', 'error');
+      return;
+    }
+
+    try {
+      // Transform mealTables to the format expected by the export service
+      const menuTablesToExport = mealTables.map(table => ({
+        title: table.title,
+        headerColor: table.headerColor,
+        recipeTitle: table.recipeTitle,
+        recipeLink: table.recipeLink,
+        items: table.items
+          .filter(item => item.cantidad || item.nombre) // Only include non-empty rows
+          .map(item => ({
+            cantidad: item.cantidad,
+            nombre: item.nombre,
+            recipeId: undefined as number | undefined // TODO: link recipe IDs if available
+          }))
+      }));
+
+      await window.electronAPI.menu.exportToWord(menuTablesToExport, currentMenuNombre || 'Menú');
+      showToast('Menú exportado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error exporting menu:', error);
+      showToast('Error al exportar el menú', 'error');
+    }
+  };
+
 
   const handleAddRow = (tableIndex: number) => {
     const newTables = [...mealTables];

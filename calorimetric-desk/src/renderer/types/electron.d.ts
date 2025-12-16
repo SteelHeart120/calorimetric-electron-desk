@@ -80,6 +80,7 @@ export interface MenuTiempo {
 
 export interface ElectronAPI {
   onSaveMenu: (callback: () => void) => void;
+  onExportMenu: (callback: () => void) => void;
   onShowAddPatient: (callback: () => void) => void;
   onShowAddRecipe: (callback: () => void) => void;
   onShowAddIngrediente: (callback: () => void) => void;
@@ -115,6 +116,7 @@ export interface ElectronAPI {
     getById: (menuId: number) => Promise<{ menu: MenuHeader; items: any[] }>;
     saveItems: (data: SaveMenuItemsData) => Promise<void>;
     delete: (idPaciente: number) => Promise<void>;
+    exportToWord: (menuTables: any[], menuNombre: string) => Promise<void>;
   };
   menuTiempos: {
     getAll: () => Promise<MenuTiempo[]>;
