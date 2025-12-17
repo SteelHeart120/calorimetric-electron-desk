@@ -24,7 +24,7 @@ interface MealTable {
   recipeLink?: string;
 }
 
-const ROMAN = ['I', 'II', 'III', 'IV', 'V'] as const;
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'] as const;
 const DEFAULT_MENU_TIEMPOS = ['Desayuno', 'Almuerzo', 'Comida', 'Post-entreno', 'Cena'] as const;
 type MenuTiempos5 = [string, string, string, string, string];
 
@@ -33,7 +33,7 @@ const buildMealTables = (tiemposBase: MenuTiempos5): MealTable[] => {
   const tables: MealTable[] = [];
 
   for (let row = 0; row < 5; row++) {
-    for (let col = 0; col < 5; col++) {
+    for (let col = 0; col < 7; col++) {
       tables.push({
         title: `${tiemposBase[row]} ${ROMAN[col]}`,
         items: [{ codigo: '', cantidad: '', nombre: '', color: '#EF4444' }],
@@ -130,12 +130,10 @@ const Dashboard = () => {
     setCurrentMenuId(null);
     setCurrentMenuNombre('');
     setCurrentMenuTiempos([...DEFAULT_MENU_TIEMPOS] as MenuTiempos5);
-    setMealTables(buildMealTables([...DEFAULT_MENU_TIEMPOS] as MenuTiempos5));
+    setMealTables([]);
   };
 
-  const [mealTables, setMealTables] = useState<MealTable[]>(() =>
-    buildMealTables([...DEFAULT_MENU_TIEMPOS] as MenuTiempos5)
-  );
+  const [mealTables, setMealTables] = useState<MealTable[]>([]);
 
   const tabs = [
     { name: 'Menú', current: activeTab === 'Menú' },
@@ -475,13 +473,13 @@ const Dashboard = () => {
     // Initialize data structure: { tipoName: [tiempo1, tiempo2, tiempo3, tiempo4, tiempo5] }
     const sums: { [key: string]: number[] } = {};
     
-    // Define the tiempo groups (5 tables per tiempo)
+    // Define the tiempo groups (7 tables per tiempo)
     const tiempoGroups = [
-      { name: currentMenuTiempos[0], start: 0, end: 5 },
-      { name: currentMenuTiempos[1], start: 5, end: 10 },
-      { name: currentMenuTiempos[2], start: 10, end: 15 },
-      { name: currentMenuTiempos[3], start: 15, end: 20 },
-      { name: currentMenuTiempos[4], start: 20, end: 25 },
+      { name: currentMenuTiempos[0], start: 0, end: 7 },
+      { name: currentMenuTiempos[1], start: 7, end: 14 },
+      { name: currentMenuTiempos[2], start: 14, end: 21 },
+      { name: currentMenuTiempos[3], start: 21, end: 28 },
+      { name: currentMenuTiempos[4], start: 28, end: 35 },
     ];
 
     // Calculate sums for each tiempo group
@@ -660,10 +658,39 @@ const Dashboard = () => {
   }, [equivByGroupsDict]);
 
   const renderMenuView = () => {
-    // Group tables into rows of 5
+    // Show message if no menu is loaded
+    if (mealTables.length === 0) {
+      return (
+        <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-12 dark:border-gray-600 dark:bg-gray-800">
+          <div className="text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+              No hay menú cargado
+            </h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Crea un nuevo menú o carga uno existente para comenzar
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Group tables into rows of 7
     const rows = [];
-    for (let i = 0; i < mealTables.length; i += 5) {
-      rows.push(mealTables.slice(i, i + 5));
+    for (let i = 0; i < mealTables.length; i += 7) {
+      rows.push(mealTables.slice(i, i + 7));
     }
 
     return (
@@ -731,9 +758,9 @@ const Dashboard = () => {
         </div>
 
         {rows.map((row, rowIndex) => (
-          <div key={rowIndex} className="grid grid-cols-1 gap-0 lg:grid-cols-5">
+          <div key={rowIndex} className="grid grid-cols-1 gap-0 lg:grid-cols-7">
             {row.map((table, tableIndex) => {
-              const actualTableIndex = rowIndex * 5 + tableIndex;
+              const actualTableIndex = rowIndex * 7 + tableIndex;
               return (
                 <div
                   key={actualTableIndex}
@@ -763,23 +790,23 @@ const Dashboard = () => {
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900">
                         <tr>
-                          <th className="w-16 px-2  text-left text-xs font-medium text-gray-500 dark:text-gray-400">
-                            Código
+                          <th className="w-10 px-1 text-left text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                            Equiv
                           </th>
-                          <th className="w-16 px-2 py-0.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <th className="w-14 px-1 py-0.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-400">
                             Cantidad
                           </th>
-                          <th className="px-2 py-0.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <th className="px-1 py-0.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-400">
                             Nombre
                           </th>
-                          <th className="w-10 px-2 py-0.5">
+                          <th className="w-6 px-1 py-0.5">
                           </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
                         {table.items.map((item, itemIndex) => (
                           <tr key={itemIndex}>
-                            <td className="w-16 px-2">
+                            <td className="w-10 px-1">
                               <input
                                 type="text"
                                 value={item.codigo}
@@ -795,22 +822,22 @@ const Dashboard = () => {
                                   backgroundColor: item.color,
                                   color: getTextColor(item.color),
                                 }}
-                                className="w-full rounded border border-gray-300 px-2 py-0 text-xs font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                className="w-full rounded border border-gray-300 px-1 py-0 text-[10px] font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                                 placeholder="0"
                                 title="Clic derecho para cambiar color"
                               />
                             </td>
-                            <td className="w-16 px-2 py-0.5">
+                            <td className="w-14 px-1 py-0.5">
                               <input
                                 type="text"
                                 value={item.cantidad}
                                 onChange={(e) =>
                                   handleCellChange(actualTableIndex, itemIndex, 'cantidad', e.target.value)
                                 }
-                                className="w-full rounded border-gray-300 bg-transparent px-2 py-0 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
+                                className="w-full rounded border-gray-300 bg-transparent px-1 py-0 text-[10px] text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
                               />
                             </td>
-                            <td className="px-2 py-0.5">
+                            <td className="px-1 py-0.5">
                               <div className="relative flex items-center gap-1">
                                 <input
                                   type="text"
@@ -818,7 +845,7 @@ const Dashboard = () => {
                                   onChange={(e) =>
                                     handleCellChange(actualTableIndex, itemIndex, 'nombre', e.target.value)
                                   }
-                                  className="w-full rounded border-gray-300 bg-transparent px-2 py-0 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
+                                  className="w-full rounded border-gray-300 bg-transparent px-1 py-0 text-[10px] text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:text-white"
                                 />
                                 {/* Warning icon if ingredient is in evitar list */}
                                 {selectedPaciente && 
@@ -834,13 +861,13 @@ const Dashboard = () => {
                                 )}
                               </div>
                             </td>
-                            <td className="w-10 px-2 py-0.5">
+                            <td className="w-6 px-1 py-0.5">
                               <button
                                 onClick={() => handleDeleteRow(actualTableIndex, itemIndex)}
                                 className="rounded p-0.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                                 title="Eliminar fila"
                               >
-                                <HiOutlineTrash className="h-3.5 w-3.5" />
+                                <HiOutlineTrash className="h-3 w-3" />
                               </button>
                             </td>
                           </tr>

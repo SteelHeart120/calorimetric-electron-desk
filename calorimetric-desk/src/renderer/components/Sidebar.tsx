@@ -3,6 +3,7 @@ import {
   HiOutlineBars3,
   HiOutlineXMark,
 } from 'react-icons/hi2';
+import CalorimetricLogo from '../../assets/images/CalorimetricLogo.jpeg';
 
 export interface NavigationItem {
   name: string;
@@ -24,7 +25,7 @@ function classNames(...classes: (string | boolean | undefined)[]) {
 
 export default function Sidebar({
   navigation,
-  logo = 'https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=600',
+  logo = CalorimetricLogo,
   children,
   className = '',
 }: SidebarProps) {
@@ -55,11 +56,11 @@ export default function Sidebar({
 
               {/* Mobile sidebar content */}
               <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2 dark:bg-gray-900">
-                <div className="flex h-16 shrink-0 items-center">
+                <div className="flex h-24 shrink-0 items-center justify-center">
                   <img
                     alt="Company Logo"
                     src={logo}
-                    className="h-8 w-auto"
+                    className="w-full h-auto max-h-20 object-contain"
                   />
                 </div>
                 <nav className="flex flex-1 flex-col">
@@ -100,13 +101,13 @@ export default function Sidebar({
       )}
 
       {/* Static sidebar for desktop */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-52 lg:flex-col">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-40 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-4 dark:border-white/10 dark:bg-gray-900">
-          <div className="flex h-16 shrink-0 items-center">
+          <div className="flex h-24 shrink-0 items-center justify-center">
             <img
               alt="Company Logo"
               src={logo}
-              className="h-8 w-auto"
+              className="w-full h-auto max-h-20 object-contain"
             />
           </div>
           <nav className="flex flex-1 flex-col">
@@ -159,7 +160,7 @@ export default function Sidebar({
       </div>
 
       {/* Main content */}
-      <main className="lg:pl-52">
+      <main className="lg:pl-40">
         <div className="px-4 py-6 sm:px-6 lg:px-8">{children}</div>
       </main>
     </div>

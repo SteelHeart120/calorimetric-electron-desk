@@ -53,8 +53,8 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
     // Create the single table
     const tableRows: TableRow[] = [];
 
-    // 1. Main Header Row: I, II, III, IV, V
-    const romanNumerals = ['I', 'II', 'III', 'IV', 'V'];
+    // 1. Main Header Row: I, II, III, IV, V, VI, VII
+    const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
     tableRows.push(
       new TableRow({
         tableHeader: true,
@@ -64,7 +64,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
               children: [new TextRun({ text: roman, bold: true, size: 24 })],
               alignment: AlignmentType.CENTER
             })],
-            width: { size: 20, type: WidthType.PERCENTAGE },
+            width: { size: 14.28, type: WidthType.PERCENTAGE },
             shading: { type: ShadingType.SOLID, color: 'E5E7EB' },
             verticalAlign: VerticalAlign.CENTER,
           })
@@ -72,8 +72,8 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
       })
     );
 
-    // 2. Group by 5 (assuming 5 columns per row structure from Dashboard)
-    const chunkSize = 5;
+    // 2. Group by 7 (assuming 7 columns per row structure from Dashboard)
+    const chunkSize = 7;
     for (let i = 0; i < menuTables.length; i += chunkSize) {
       const chunk = menuTables.slice(i, i + chunkSize);
       
@@ -84,9 +84,9 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
       
       // Determine section color based on headerColor property
       // pink -> light pink, green -> light green
-      const sectionColor = chunk[0]?.headerColor === 'pink' ? 'FCE7F3' : 'D1FAE5'; 
+      const sectionColor = chunk[0]?.headerColor === 'pink' ? 'EC4899' : '10B981'; 
 
-      // Row for Meal Time Name (Spanning all 5 columns)
+      // Row for Meal Time Name (Spanning all 7 columns)
       tableRows.push(
         new TableRow({
           children: [
@@ -95,7 +95,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
                 children: [new TextRun({ text: mealTimeName, bold: true })],
                 alignment: AlignmentType.CENTER
               })],
-              columnSpan: 5,
+              columnSpan: 7,
               shading: { type: ShadingType.SOLID, color: sectionColor },
               verticalAlign: VerticalAlign.CENTER,
             })
@@ -103,7 +103,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
         })
       );
 
-      // Row for Items (5 columns side-by-side)
+      // Row for Items (7 columns side-by-side)
       const itemCells = chunk.map(table => {
         const cellChildren: Paragraph[] = [];
 
@@ -152,15 +152,15 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
 
         return new TableCell({
           children: cellChildren,
-          width: { size: 20, type: WidthType.PERCENTAGE },
+          width: { size: 14.28, type: WidthType.PERCENTAGE },
           verticalAlign: VerticalAlign.TOP,
           margins: { top: 100, bottom: 100, left: 100, right: 100 }
         });
       });
 
-      // Fill up to 5 cells if chunk is smaller (safety)
-      while (itemCells.length < 5) {
-        itemCells.push(new TableCell({ children: [], width: { size: 20, type: WidthType.PERCENTAGE } }));
+      // Fill up to 7 cells if chunk is smaller (safety)
+      while (itemCells.length < 7) {
+        itemCells.push(new TableCell({ children: [], width: { size: 14.28, type: WidthType.PERCENTAGE } }));
       }
 
       tableRows.push(new TableRow({ children: itemCells }));

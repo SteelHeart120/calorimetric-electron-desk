@@ -234,13 +234,15 @@ function initializeSchema() {
       console.log('NombreTiempo column added successfully');
     }
 
-    // Ensure Tiempos includes Hidratacion I-V (and keep inserts idempotent)
+    // Ensure Tiempos includes Hidratacion I-VII (and keep inserts idempotent)
     db.exec(`
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion I');
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion II');
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion III');
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion IV');
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion V');
+      INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion VI');
+      INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion VII');
     `);
 
     // Backfill NombreTiempo from idTiempos if missing
