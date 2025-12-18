@@ -4,6 +4,7 @@ import type { NavigationItem } from './components/Sidebar';
 import { Dashboard, Recetario, Pacientes } from './pages';
 import { AddRecipeModal, AddIngredienteModal, IngredientesListModal } from './components';
 import { useRecipes, useIngredientes } from './hooks';
+import CalorimetricLogo from '../assets/images/CalorimetricLogo.jpeg';
 import {
   HiOutlineHome,
   HiOutlineBookOpen,
@@ -14,6 +15,8 @@ type Page = 'dashboard' | 'recetario' | 'pacientes';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [showSplash, setShowSplash] = useState(true);
+  const [isFading, setIsFading] = useState(false);
   const [isAddRecipeModalOpen, setIsAddRecipeModalOpen] = useState(false);
   const [isAddIngredienteModalOpen, setIsAddIngredienteModalOpen] = useState(false);
   const [isIngredientesListModalOpen, setIsIngredientesListModalOpen] = useState(false);
@@ -22,6 +25,18 @@ const App = () => {
   
   const { createRecipe } = useRecipes();
   const { ingredientes, loading: ingredientesLoading, refresh: refreshIngredientes } = useIngredientes();
+
+  // Splash screen timer
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsFading(true);
+      setTimeout(() => {
+        setShowSplash(false);
+      }, 500); // Fade duration
+    }, 2000); // Display duration
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch tipos ingrediente
   useEffect(() => {
@@ -119,6 +134,21 @@ const App = () => {
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900">
+      {showSplash && (
+        <div 
+          className={`fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-gray-900 transition-opacity duration-500 ${
+            isFading ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          <div className="text-center">
+            <img 
+              src={CalorimetricLogo} 
+              alt="Calorimetric Logo" 
+              className="w-96 h-auto animate-pulse"
+            />
+          </div>
+        </div>
+      )}
       <Sidebar navigation={navigation} className="h-full">
         {renderPage()}
       </Sidebar>

@@ -80,8 +80,30 @@ const Dashboard = () => {
         const tipos = await window.electronAPI?.tiposIngrediente.getAll();
         console.log('Loaded tipos ingrediente:', tipos);
         if (tipos) {
-          COLOR_OPTIONS = tipos.map(t => ({ value: t.color, label: t.nombre }));
-          setTipos(tipos);
+          // Custom order requested by user:
+          // Lacteos, AOAM, AOAB, AOAMB, Leguminosas, Verduras, Cereales, Lip+proteina, Frutas, Lípidos (Cereales?), Azucares
+          const orderMap: Record<string, number> = {
+            'Lácteos': 1,
+            'AOAM': 2,
+            'AOAB': 3,
+            'AOAMB': 4,
+            'Leguminosas': 5,
+            'Verduras': 6,
+            'Líp+proteína': 7,
+            'Frutas': 8,
+            'Lípidos': 9,
+            'Cereales': 10,
+            'Azúcares': 11
+          };
+
+          const sortedTipos = [...tipos].sort((a, b) => {
+            const orderA = orderMap[a.nombre] || 99;
+            const orderB = orderMap[b.nombre] || 99;
+            return orderA - orderB;
+          });
+
+          COLOR_OPTIONS = sortedTipos.map(t => ({ value: t.color, label: t.nombre }));
+          setTipos(sortedTipos);
         }
       } catch (error) {
         console.error('Error loading tipos:', error);
@@ -387,7 +409,7 @@ const Dashboard = () => {
       const newTables = [...mealTables];
       const newItems = recipe.ingredientes.map((ing: RecipeIngredient) => ({
         codigo: '',
-        cantidad: '',
+        cantidad: getIngredientQuantity(ing.nombre),
         nombre: ing.nombre,
         color: ing.color || '#9CA3AF',
       }));
@@ -411,6 +433,57 @@ const Dashboard = () => {
     }, 100);
   };
 
+  const getIngredientQuantity = (nombre: string): string => {
+    const n = nombre.toLowerCase();
+    
+    // Liquids
+    if (n.includes('leche') || n.includes('aceite') || n.includes('caldo') || n.includes('salsa') || n.includes('agua') || n.includes('yogurt')) {
+      return `${Math.floor(Math.random() * 150) + 100}ml de`;
+    }
+    
+    // Pieces
+    if (n.includes('huevo') || n.includes('tortilla') || n.includes('pan') || n.includes('tostada') || n.includes('aguacate') || n.includes('limón') || n.includes('mango') || n.includes('plátano') || n.includes('manzana') || n.includes('naranja') || n.includes('jícama')) {
+      return '1 pieza de';
+    }
+    
+    // Proteins (grams)
+    if (n.includes('pollo') || n.includes('pescado') || n.includes('atún') || n.includes('camarón') || n.includes('carne') || n.includes('queso')) {
+      return `${Math.floor(Math.random() * 50) + 80}g de`;
+    }
+    
+    // Grains/Legumes (cups)
+    if (n.includes('quinoa') || n.includes('arroz') || n.includes('avena') || n.includes('pasta') || n.includes('frijoles') || n.includes('lentejas') || n.includes('garbanzos') || n.includes('maíz')) {
+      return '1/2 taza de';
+    }
+    
+    // Leafy greens (cups)
+    if (n.includes('espinacas') || n.includes('lechuga') || n.includes('col')) {
+      return '1 taza de';
+    }
+    
+    // Vegetables (pieces or portions)
+    if (n.includes('tomate') || n.includes('cebolla') || n.includes('pepino') || n.includes('calabaza') || n.includes('zanahoria') || n.includes('brócoli') || n.includes('pimiento') || n.includes('nopal') || n.includes('rábano')) {
+      return '1/2 pieza de';
+    }
+    
+    // Spices/Condiments
+    if (n.includes('sal') || n.includes('pimienta') || n.includes('comino') || n.includes('orégano') || n.includes('nuez moscada') || n.includes('chile') || n.includes('ajo') || n.includes('cilantro')) {
+      return '1 pizca de';
+    }
+    
+    // Seeds/Nuts
+    if (n.includes('pepita') || n.includes('nuez') || n.includes('almendra') || n.includes('cacahuate') || n.includes('chía')) {
+      return '1 cucharada de';
+    }
+
+    // Sugars
+    if (n.includes('miel') || n.includes('azúcar')) {
+      return '1 cucharadita de';
+    }
+
+    return '1 porción de';
+  };
+
   // TEST FUNCTION: Fill all menus with random recipes
   const handleFillTestData = async () => {
     try {
@@ -429,7 +502,7 @@ const Dashboard = () => {
         // Fill with recipe ingredients
         const items = randomRecipe.ingredientes.map((ing, idx) => ({
           codigo: String(idx + 1),
-          cantidad: String(Math.floor(Math.random() * 200) + 50), // Random quantity 50-250
+          cantidad: getIngredientQuantity(ing.nombre),
           nombre: ing.nombre,
           color: ing.color || '#9CA3AF',
         }));
@@ -918,7 +991,7 @@ const Dashboard = () => {
               <div className="mb-2 px-2 text-xs font-medium text-gray-700 dark:text-gray-300">
                 Seleccionar color
               </div>
-              <div className="grid grid-cols-3 gap-1">
+              <div className="flex flex-col gap-1 max-h-80 overflow-y-auto">
                 {COLOR_OPTIONS.map((colorOption) => (
                   <button
                     key={colorOption.value}
@@ -929,10 +1002,16 @@ const Dashboard = () => {
                         colorOption.value
                       )
                     }
-                    style={{ backgroundColor: colorOption.value }}
-                    className="h-8 rounded border border-gray-300 hover:scale-110 transition-transform dark:border-gray-600"
-                    title={colorOption.label}
-                  />
+                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <div 
+                      style={{ backgroundColor: colorOption.value }}
+                      className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 flex-shrink-0"
+                    />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      {colorOption.label}
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>

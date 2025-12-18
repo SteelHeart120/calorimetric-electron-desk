@@ -5,11 +5,17 @@ import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
+import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import path from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: {
+      unpack: '**/node_modules/better-sqlite3/**/*',
+    },
   },
   rebuildConfig: {
     extraModules: ['better-sqlite3']
@@ -20,6 +26,27 @@ const config: ForgeConfig = {
     new MakerRpm({}),
     new MakerDeb({}),
   ],
+  hooks: {
+    packageAfterCopy: async (forgeConfig, buildPath, electronVersion, platform, arch) => {
+      console.log('Installing production dependencies in:', buildPath);
+      // Create a minimal package.json in the build path
+      const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'));
+      const prodPkg = {
+        name: pkg.name,
+        version: pkg.version,
+        dependencies: {
+          'better-sqlite3': pkg.dependencies['better-sqlite3'],
+        },
+      };
+      fs.writeFileSync(path.join(buildPath, 'package.json'), JSON.stringify(prodPkg, null, 2));
+      
+      // Install dependencies
+      execSync('npm install --production', {
+        cwd: buildPath,
+        stdio: 'inherit',
+      });
+    },
+  },
   plugins: [
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.

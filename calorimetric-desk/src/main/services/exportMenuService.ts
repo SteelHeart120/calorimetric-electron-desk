@@ -212,3 +212,4 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
     throw error;
   }
 }
+

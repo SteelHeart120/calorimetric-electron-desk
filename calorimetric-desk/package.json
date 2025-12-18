@@ -1,8 +1,8 @@
 {
-  "name": "calorimetric-desk",
-  "productName": "calorimetric-desk",
+  "name": "calorimetric-pro-diet",
+  "productName": "calorimetric-pro-diet",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Aplicacion de escritorio de administracion de menus y dietas",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
@@ -13,8 +13,8 @@
   },
   "keywords": [],
   "author": {
-    "name": "mount",
-    "email": "mount@WELDMATION"
+    "name": "Ivan Martinez",
+    "email": "ivancini.gemini@gmail.com"
   },
   "license": "MIT",
   "devDependencies": {
