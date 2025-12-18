@@ -16,6 +16,7 @@ const config: ForgeConfig = {
     asar: {
       unpack: '**/node_modules/better-sqlite3/**/*',
     },
+    icon: './src/assets/images/CalorimetricLogo', // Forge will look for .ico, .png, etc.
   },
   rebuildConfig: {
     extraModules: ['better-sqlite3']

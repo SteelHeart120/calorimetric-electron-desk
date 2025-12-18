@@ -83,7 +83,7 @@ function initializeSchema() {
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAM', '#f51f1fff');
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAB', '#e44444ff');
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAMB', '#FF6363');
-        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Leguminosas', '#A52A2A');
+        INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Leguminosas', '#5D4037');
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Verduras', '#008000');
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Cereales', '#FF8C00');
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Frutas', '#8A2BE2');
@@ -93,6 +93,9 @@ function initializeSchema() {
       `);
       console.log('TipoIngrediente table created successfully');
     }
+
+    // Ensure Leguminosas has the correct color (café)
+    db.prepare("UPDATE TipoIngrediente SET color = ? WHERE nombre = ?").run('#5D4037', 'Leguminosas');
 
     // Check if tipo_id column exists in Ingredientes
     const tipoIdColumnExists = db.prepare(
@@ -118,7 +121,7 @@ function initializeSchema() {
           idPaciente INTEGER NOT NULL,
           idTiempos INTEGER NOT NULL,
           idTipoIngrediente INTEGER,
-          Codigo INTEGER,
+          Codigo REAL,
           Cantidad TEXT,
           Nombre TEXT,
           RecipeTitle TEXT,
@@ -457,7 +460,7 @@ function createTables() {
         INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAM', '#f51f1fff');
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAB', '#e44444ff');
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('AOAMB', '#FF6363');
-    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Leguminosas', '#A52A2A');
+    INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Leguminosas', '#5D4037');
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Verduras', '#008000');
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Cereales', '#FF8C00');
     INSERT OR IGNORE INTO TipoIngrediente (nombre, color) VALUES ('Frutas', '#8A2BE2');

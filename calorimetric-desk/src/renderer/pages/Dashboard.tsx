@@ -89,10 +89,10 @@ const Dashboard = () => {
             'AOAMB': 4,
             'Leguminosas': 5,
             'Verduras': 6,
-            'Líp+proteína': 7,
+            'Cereales': 7,
             'Frutas': 8,
             'Lípidos': 9,
-            'Cereales': 10,
+            'Líp+proteína': 10,
             'Azúcares': 11
           };
 
@@ -885,8 +885,8 @@ const Dashboard = () => {
                                 value={item.codigo}
                                 onChange={(e) => {
                                   const value = e.target.value;
-                                  // Only allow numbers
-                                  if (value === '' || /^\d+$/.test(value)) {
+                                  // Allow numbers and decimals
+                                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
                                     handleCellChange(actualTableIndex, itemIndex, 'codigo', value);
                                   }
                                 }}
@@ -1368,7 +1368,7 @@ const Dashboard = () => {
                       <td className="px-4 py-2 text-xs font-medium text-white">Animales</td>
                       <td className="px-3 py-2 text-center text-xs font-semibold text-white">{(eq('AOAMB') + eq('AOAB') + eq('AOAM')).toFixed(2)}</td>
                     </tr>
-                    <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#A52A2A' }}>
+                    <tr className="hover:opacity-80 transition-colors" style={{ backgroundColor: '#5D4037' }}>
                       <td className="px-4 py-2 text-xs font-medium text-white">Leguminosas</td>
                       <td className="px-3 py-2 text-center text-xs font-semibold text-white">{eq('Leguminosas').toFixed(2)}</td>
                     </tr>

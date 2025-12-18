@@ -41,12 +41,17 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
         text: menuNombre || 'Plan Nutricional',
         heading: 'Heading1',
         alignment: AlignmentType.CENTER,
-        spacing: { after: 200 }
+        spacing: { after: 100 }
       }),
       new Paragraph({
-        text: 'Este documento contiene su plan nutricional detallado. Cada columna representa una opción diferente (I, II, III, IV, V) para cada tiempo de comida.',
+        children: [
+          new TextRun({
+            text: 'Este documento contiene su plan nutricional detallado. Cada columna representa una opción diferente (I, II, III, IV, V) para cada tiempo de comida.',
+            size: 18
+          })
+        ],
         alignment: AlignmentType.CENTER,
-        spacing: { after: 400 }
+        spacing: { after: 200 }
       })
     );
 
@@ -61,7 +66,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
         children: romanNumerals.map(roman => 
           new TableCell({
             children: [new Paragraph({ 
-              children: [new TextRun({ text: roman, bold: true, size: 24 })],
+              children: [new TextRun({ text: roman, bold: true, size: 20 })],
               alignment: AlignmentType.CENTER
             })],
             width: { size: 14.28, type: WidthType.PERCENTAGE },
@@ -92,7 +97,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
           children: [
             new TableCell({
               children: [new Paragraph({ 
-                children: [new TextRun({ text: mealTimeName, bold: true })],
+                children: [new TextRun({ text: mealTimeName, bold: true, size: 20 })],
                 alignment: AlignmentType.CENTER
               })],
               columnSpan: 7,
@@ -118,7 +123,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
                       text: table.recipeTitle,
                       bold: true,
                       italics: true,
-                      size: 20,
+                      size: 16,
                       color: "0563C1",
                       underline: {},
                     }),
@@ -126,7 +131,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
                   link: table.recipeLink || "recipe://0",
                 }),
               ],
-              spacing: { after: 100 },
+              spacing: { after: 50 },
             })
           );
         }
@@ -137,9 +142,9 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
              cellChildren.push(
               new Paragraph({
                 children: [
-                  new TextRun({ text: `${item.cantidad || ''} ${item.nombre || ''}`.trim(), size: 20 })
+                  new TextRun({ text: `${item.cantidad || ''} ${item.nombre || ''}`.trim(), size: 16 })
                 ],
-                spacing: { after: 40 }
+                spacing: { after: 20 }
               })
             );
           }
@@ -154,7 +159,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
           children: cellChildren,
           width: { size: 14.28, type: WidthType.PERCENTAGE },
           verticalAlign: VerticalAlign.TOP,
-          margins: { top: 100, bottom: 100, left: 100, right: 100 }
+          margins: { top: 50, bottom: 50, left: 50, right: 50 }
         });
       });
 

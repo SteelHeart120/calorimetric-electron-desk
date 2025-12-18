@@ -153,8 +153,8 @@ export function saveMenuItems(data: SaveMenuItemsData): void {
       const tipoRecord = db.prepare('SELECT id FROM TipoIngrediente WHERE color = ?').get(item.color) as any;
       const tipoId = tipoRecord ? tipoRecord.id : null;
 
-      const codigo = item.codigo ? parseInt(item.codigo, 10) : null;
-      const cantidad = item.cantidad ? parseFloat(item.cantidad) : null;
+      const codigo = item.codigo ? parseFloat(item.codigo) : null;
+      const cantidad = item.cantidad || null;
 
       insertStmt.run(
         data.menuId,
