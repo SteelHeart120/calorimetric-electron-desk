@@ -10,13 +10,14 @@ interface MenuHeader {
   tiempo3: string;
   tiempo4: string;
   tiempo5: string;
+  tiempos?: string;
   created_at: string;
 }
 
 interface CreateMenuData {
   idPaciente: number;
   nombre: string;
-  tiempos: [string, string, string, string, string];
+  tiempos: string[];
 }
 
 interface MenuTiempo {
@@ -28,7 +29,7 @@ interface NewMenuModalProps {
   isOpen: boolean;
   onClose: () => void;
   idPaciente: number | null;
-  defaultTiempos: [string, string, string, string, string];
+  defaultTiempos: string[];
   onCreated: (menu: MenuHeader) => void;
 }
 
@@ -40,7 +41,7 @@ export const NewMenuModal: React.FC<NewMenuModalProps> = ({
   onCreated,
 }) => {
   const [nombre, setNombre] = useState('');
-  const [tiempos, setTiempos] = useState<[string, string, string, string, string]>(defaultTiempos);
+  const [tiempos, setTiempos] = useState<string[]>(['Desayuno']);
   const [options, setOptions] = useState<MenuTiempo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export const NewMenuModal: React.FC<NewMenuModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     setNombre('');
-    setTiempos(defaultTiempos);
+    setTiempos(['Desayuno']);
     setError(null);
 
     const loadOptions = async () => {
@@ -62,11 +63,22 @@ export const NewMenuModal: React.FC<NewMenuModalProps> = ({
     };
 
     loadOptions();
-  }, [isOpen, defaultTiempos]);
+  }, [isOpen]);
 
   const canSubmit = useMemo(() => {
-    return Boolean(idPaciente) && Boolean(nombre.trim()) && tiempos.every((t) => t && t.trim());
+    return Boolean(idPaciente) && Boolean(nombre.trim()) && tiempos.length > 0 && tiempos.every((t) => t && t.trim());
   }, [idPaciente, nombre, tiempos]);
+
+  const handleAddTiempo = () => {
+    setTiempos([...tiempos, '']);
+  };
+
+  const handleRemoveTiempo = (index: number) => {
+    if (tiempos.length <= 1) return;
+    const next = [...tiempos];
+    next.splice(index, 1);
+    setTiempos(next);
+  };
 
   const handleCreate = async () => {
     if (!idPaciente) {
@@ -137,34 +149,50 @@ export const NewMenuModal: React.FC<NewMenuModalProps> = ({
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            {[0, 1, 2, 3, 4].map((idx) => (
-              <div key={idx}>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Tiempo {idx + 1}
-                </label>
-                <select
-                  value={tiempos[idx]}
-                  onChange={(e) => {
-                    const next = [...tiempos] as [string, string, string, string, string];
-                    next[idx] = e.target.value;
-                    setTiempos(next);
-                  }}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  disabled={isLoading}
-                >
-                  {options.length === 0 ? (
-                    <option value={tiempos[idx]}>{tiempos[idx]}</option>
-                  ) : (
-                    options.map((opt) => (
+            {tiempos.map((tiempo, idx) => (
+              <div key={idx} className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Tiempo {idx + 1}
+                  </label>
+                  <select
+                    value={tiempo}
+                    onChange={(e) => {
+                      const next = [...tiempos];
+                      next[idx] = e.target.value;
+                      setTiempos(next);
+                    }}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    disabled={isLoading}
+                  >
+                    <option value="">Seleccionar tiempo</option>
+                    {options.map((opt) => (
                       <option key={opt.id} value={opt.Nombre}>
                         {opt.Nombre}
                       </option>
-                    ))
-                  )}
-                </select>
+                    ))}
+                  </select>
+                </div>
+                {tiempos.length > 1 && (
+                  <button
+                    onClick={() => handleRemoveTiempo(idx)}
+                    className="mb-0.5 rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
+                    title="Eliminar tiempo"
+                  >
+                    <HiXMark className="h-5 w-5" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
+
+          <button
+            onClick={handleAddTiempo}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+          >
+            <span className="text-lg">+</span> Agregar tiempo
+          </button>
         </div>
 
         <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">

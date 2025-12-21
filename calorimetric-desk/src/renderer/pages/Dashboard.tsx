@@ -25,19 +25,18 @@ interface MealTable {
 }
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'] as const;
-const DEFAULT_MENU_TIEMPOS = ['Desayuno', 'Almuerzo', 'Comida', 'Post-entreno', 'Cena'] as const;
-type MenuTiempos5 = [string, string, string, string, string];
+const DEFAULT_MENU_TIEMPOS = ['Desayuno', 'Almuerzo', 'Comida', 'Snack', 'Post-entreno', 'Cena'] as const;
 
-const buildMealTables = (tiemposBase: MenuTiempos5): MealTable[] => {
-  const headerColors: Array<'green' | 'pink'> = ['green', 'pink', 'green', 'pink', 'green'];
+const buildMealTables = (tiemposBase: string[]): MealTable[] => {
+  const headerColors: Array<'green' | 'pink'> = ['green', 'pink'];
   const tables: MealTable[] = [];
 
-  for (let row = 0; row < 5; row++) {
+  for (let row = 0; row < tiemposBase.length; row++) {
     for (let col = 0; col < 7; col++) {
       tables.push({
-        title: `${tiemposBase[row]} ${ROMAN[col]}`,
+        title: `${tiemposBase[row] || 'Tiempo'} ${ROMAN[col]}`,
         items: [{ codigo: '', cantidad: '', nombre: '', color: '#EF4444' }],
-        headerColor: headerColors[row],
+        headerColor: headerColors[row % 2],
       });
     }
   }
@@ -45,10 +44,36 @@ const buildMealTables = (tiemposBase: MenuTiempos5): MealTable[] => {
   return tables;
 };
 
-const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('Menú');
-  const [pacienteSearch, setPacienteSearch] = useState('');
-  const [selectedPaciente, setSelectedPaciente] = useState<{ id: number; nombre: string } | null>(null);
+interface DashboardProps {
+  selectedPaciente: { id: number; nombre: string } | null;
+  setSelectedPaciente: (paciente: { id: number; nombre: string } | null) => void;
+  pacienteSearch: string;
+  setPacienteSearch: (search: string) => void;
+  currentMenuId: number | null;
+  setCurrentMenuId: (id: number | null) => void;
+  currentMenuNombre: string;
+  setCurrentMenuNombre: (nombre: string) => void;
+  currentMenuTiempos: string[];
+  setCurrentMenuTiempos: (tiempos: string[]) => void;
+  mealTables: MealTable[];
+  setMealTables: (tables: MealTable[]) => void;
+}
+
+const Dashboard = ({
+  selectedPaciente,
+  setSelectedPaciente,
+  pacienteSearch,
+  setPacienteSearch,
+  currentMenuId,
+  setCurrentMenuId,
+  currentMenuNombre,
+  setCurrentMenuNombre,
+  currentMenuTiempos,
+  setCurrentMenuTiempos,
+  mealTables,
+  setMealTables,
+}: DashboardProps) => {
+  const [activeTab, setActiveTab] = useState('Codigo');
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState<{ tableIndex: number; itemIndex: number } | null>(null);
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
@@ -59,9 +84,6 @@ const Dashboard = () => {
   const [masaCorporalCaloriasTotales, setMasaCorporalCaloriasTotales] = useState(66);
   const [masaCorporalModoFit, setMasaCorporalModoFit] = useState(66);
 
-  const [currentMenuId, setCurrentMenuId] = useState<number | null>(null);
-  const [currentMenuNombre, setCurrentMenuNombre] = useState<string>('');
-  const [currentMenuTiempos, setCurrentMenuTiempos] = useState<MenuTiempos5>([...DEFAULT_MENU_TIEMPOS] as MenuTiempos5);
   const [isLoadMenuModalOpen, setIsLoadMenuModalOpen] = useState(false);
   const [isNewMenuModalOpen, setIsNewMenuModalOpen] = useState(false);
 
@@ -151,14 +173,12 @@ const Dashboard = () => {
     setPacienteSearch(paciente.nombre);
     setCurrentMenuId(null);
     setCurrentMenuNombre('');
-    setCurrentMenuTiempos([...DEFAULT_MENU_TIEMPOS] as MenuTiempos5);
+    setCurrentMenuTiempos([...DEFAULT_MENU_TIEMPOS] as string[]);
     setMealTables([]);
   };
 
-  const [mealTables, setMealTables] = useState<MealTable[]>([]);
-
   const tabs = [
-    { name: 'Menú', current: activeTab === 'Menú' },
+    { name: 'Codigo', current: activeTab === 'Codigo' },
     { name: 'Macros', current: activeTab === 'Macros' },
     { name: 'Patrón', current: activeTab === 'Patrón' },
   ];
@@ -171,19 +191,43 @@ const Dashboard = () => {
     console.log('Agregar nuevo menú');
   };
 
+  const handleClearMenu = () => {
+    setCurrentMenuId(null);
+    setCurrentMenuNombre('');
+    setMealTables([]);
+    showToast('Menú limpiado', 'info');
+  };
+
   const handleLoadMenuById = async (menuId: number) => {
     try {
       const result = await window.electronAPI?.menu.getById(menuId);
       if (!result) return;
 
       const header = result.menu as MenuHeader;
-      const tiemposBase: MenuTiempos5 = [
-        header.tiempo1,
-        header.tiempo2,
-        header.tiempo3,
-        header.tiempo4,
-        header.tiempo5,
-      ];
+      let tiemposBase: string[] = [];
+      
+      if (header.tiempos) {
+        try {
+          tiemposBase = JSON.parse(header.tiempos);
+        } catch (e) {
+          console.error('Error parsing menu tiempos JSON:', e);
+          tiemposBase = [
+            header.tiempo1,
+            header.tiempo2,
+            header.tiempo3,
+            header.tiempo4,
+            header.tiempo5,
+          ].filter(Boolean);
+        }
+      } else {
+        tiemposBase = [
+          header.tiempo1,
+          header.tiempo2,
+          header.tiempo3,
+          header.tiempo4,
+          header.tiempo5,
+        ].filter(Boolean);
+      }
 
       setCurrentMenuId(header.id);
       setCurrentMenuNombre(header.nombre);
@@ -284,6 +328,17 @@ const Dashboard = () => {
         };
       });
       
+      return newTables;
+    });
+  };
+
+  const handleRecipeTitleChange = (tableIndex: number, value: string) => {
+    setMealTables(prevTables => {
+      const newTables = [...prevTables];
+      newTables[tableIndex] = {
+        ...newTables[tableIndex],
+        recipeTitle: value
+      };
       return newTables;
     });
   };
@@ -851,12 +906,16 @@ const Dashboard = () => {
                     </button>
                   </div>
 
-                  {/* Recipe Title (if exists) */}
-                  {table.recipeTitle && (
-                    <div className="px-4 text-center py-1.5 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
-                      Receta: {table.recipeTitle}
-                    </div>
-                  )}
+                  {/* Recipe Title (Editable) */}
+                  <div className="px-2 py-1 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                    <input
+                      type="text"
+                      value={table.recipeTitle || ''}
+                      onChange={(e) => handleRecipeTitleChange(actualTableIndex, e.target.value)}
+                      placeholder="Título de la receta..."
+                      className="w-full bg-transparent text-center text-[10px] font-medium text-gray-700 dark:text-gray-300 border-none focus:ring-0 p-0 placeholder:text-gray-400"
+                    />
+                  </div>
 
                   {/* Table */}
                   <div className="overflow-x-auto">
@@ -1150,7 +1209,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white">{(eq('Leguminosas') * 120).toFixed(2)}</td>
                   </tr>
 
-                  <tr className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 bg-white hover:bg-gray-50 dark:divide-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-sm font-bold text-blue-600 dark:text-blue-400">Azúcar</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
@@ -1158,7 +1217,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Azúcares sin grasa</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{eq('Azúcares').toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('Azúcares') * 10).toFixed(2)}</td>
@@ -1166,7 +1225,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('Azúcares') * 40).toFixed(2)}</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Azúcares con grasa</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
@@ -1174,7 +1233,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                   </tr>
-                  <tr className="bg-purple-500 hover:bg-purple-600">
+                  <tr className="divide-x divide-gray-200 bg-purple-500 hover:bg-purple-600 dark:divide-purple-400 transition-colors">
                     <td className="px-3 py-1 text-xs font-semibold text-white">Total carbohidratos no cereales</td>
                     <td className="px-3 py-1 text-xs text-white"></td>
                     <td className="px-3 py-1 text-xs text-white">{totalCarbsNoCereales.toFixed(2)}</td>
@@ -1183,7 +1242,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-white"></td>
                   </tr>
 
-                  <tr className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 bg-white hover:bg-gray-50 dark:divide-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-sm font-bold text-orange-600 dark:text-orange-400">Cereales y tubérculos</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
@@ -1191,7 +1250,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Cereales sin grasa</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{eq('Cereales').toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('Cereales') * 15).toFixed(2)}</td>
@@ -1199,16 +1258,16 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('Cereales') * 70).toFixed(2)}</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Cereales con grasa</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
-                    <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
+                    <td className="px-3 py-1.5 text-center text-xs text-gray-900 dark:text-white"></td>
                   </tr>
 
-                  <tr className="bg-gray-500 hover:bg-gray-600">
+                  <tr className="divide-x divide-gray-200 bg-gray-500 hover:bg-gray-600 dark:divide-gray-400 transition-colors">
                     <td className="px-3 py-1 text-xs font-semibold text-white">Total proteínas no animales</td>
                     <td className="px-3 py-1 text-xs text-white"></td>
                     <td className="px-3 py-1 text-xs text-white"></td>
@@ -1217,7 +1276,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-white"></td>
                   </tr>
 
-                  <tr className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 bg-white hover:bg-gray-50 dark:divide-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-sm font-bold text-red-600 dark:text-red-400">Animal</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
@@ -1225,7 +1284,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Muy bajo</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{eq('AOAMB').toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
@@ -1233,7 +1292,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('AOAMB') * 1).toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('AOAMB') * 40).toFixed(2)}</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Bajo</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{eq('AOAB').toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
@@ -1241,7 +1300,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('AOAB') * 3).toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('AOAB') * 55).toFixed(2)}</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Moderado</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{eq('AOAM').toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
@@ -1249,7 +1308,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('AOAM') * 5).toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('AOAM') * 75).toFixed(2)}</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Alto</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
@@ -1258,7 +1317,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white"></td>
                   </tr>
 
-                  <tr className="bg-red-500 hover:bg-red-600">
+                  <tr className="divide-x divide-gray-200 bg-red-500 hover:bg-red-600 dark:divide-red-400 transition-colors">
                     <td className="px-3 py-1 text-xs font-semibold text-white">Total lípidos no grasas</td>
                     <td className="px-3 py-1 text-xs text-white"></td>
                     <td className="px-3 py-1 text-xs text-white"></td>
@@ -1267,7 +1326,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-white"></td>
                   </tr>
 
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Lípidos con proteína</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{eq('Líp+proteína').toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('Líp+proteína') * 2).toFixed(2)}</td>
@@ -1275,7 +1334,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('Líp+proteína') * 5).toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('Líp+proteína') * 65).toFixed(2)}</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">Lípidos</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{eq('Lípidos').toFixed(2)}</td>
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">0.00</td>
@@ -1284,7 +1343,7 @@ const Dashboard = () => {
                     <td className="px-3 py-1 text-xs text-gray-900 dark:text-white">{(eq('Lípidos') * 45).toFixed(2)}</td>
                   </tr>
 
-                  <tr className="bg-gray-500 hover:bg-gray-600">
+                  <tr className="divide-x divide-gray-200 bg-gray-500 hover:bg-gray-600 dark:divide-gray-400 transition-colors">
                     <td className="px-3 py-1 text-xs font-bold text-white">Total</td>
                     <td className="px-3 py-1 text-xs text-white"></td>
                     <td className="px-3 py-1 text-xs font-bold text-purple-300">{totalCarbs.toFixed(2)}</td>
@@ -1303,8 +1362,18 @@ const Dashboard = () => {
                 <table className="w-full table-fixed divide-y divide-gray-300 dark:divide-gray-700">
                   <thead>
                     <tr className="bg-blue-600 dark:bg-blue-700">
-                      <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-white border-r-2 border-blue-800">CALORÍAS TOTALES</th>
-                      <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-white">MODO FIT</th>
+                      <th colSpan={4} className="px-4 py-2 text-xs font-semibold text-white border-r-2 border-blue-800">
+                        <div className="flex justify-between items-center">
+                          <span>CALORÍAS TOTALES</span>
+                          <span>{totalCaloriasMacros.toFixed(2)}</span>
+                        </div>
+                      </th>
+                      <th colSpan={3} className="px-4 py-2 text-xs font-semibold text-white">
+                        <div className="flex justify-between items-center">
+                          <span>MODO FIT</span>
+                          <span>{totalCaloriasMacros.toFixed(2)}</span>
+                        </div>
+                      </th>
                     </tr>
                     <tr className="bg-gray-400 dark:bg-gray-600">
                       <th className="px-3 py-2 text-left text-xs font-semibold text-white">Macronutriente</th>
@@ -1401,15 +1470,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="mb-6 flex flex-wrap gap-6">
-              <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                % Cal Total: <span className="text-purple-600 dark:text-purple-400">0</span>
-              </div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                % Fit Total: <span className="text-orange-600 dark:text-orange-400">0</span>
-              </div>
-            </div>
-
             <div className="min-w-0 w-full overflow-x-auto rounded-lg border-2 border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
               <table className="w-full divide-y divide-gray-300 dark:divide-gray-700">
                 <thead className="bg-gray-100 dark:bg-gray-900">
@@ -1418,7 +1478,7 @@ const Dashboard = () => {
                       Macronutrientes / kg masa
                     </th>
                   </tr>
-                  <tr>
+                  <tr className="divide-x divide-gray-300 dark:divide-gray-700">
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800">Masa corporal actual</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold text-gray-900 dark:text-white">
                       <input
@@ -1441,21 +1501,21 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Calorías</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{masaCorporalCaloriasTotales > 0 ? (totalCaloriasMacrosHeader / masaCorporalCaloriasTotales).toFixed(2) : '0.00'}</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">cal/kg</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{masaCorporalModoFit > 0 ? (totalCaloriasMacrosHeader / masaCorporalModoFit).toFixed(2) : '0.00'}</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">cal/kg</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Proteínas</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{masaCorporalCaloriasTotales > 0 ? (totalProteins / masaCorporalCaloriasTotales).toFixed(2) : '0.00'}</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{masaCorporalModoFit > 0 ? (modoFitProteins / masaCorporalModoFit).toFixed(2) : '0.00'}</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
                   </tr>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <tr className="divide-x divide-gray-200 hover:bg-gray-50 dark:divide-gray-700 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">Carbohidratos</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-900 dark:text-white">{masaCorporalCaloriasTotales > 0 ? (totalCarbs / masaCorporalCaloriasTotales).toFixed(2) : '0.00'}</td>
                     <td className="px-3 py-2 text-center text-xs text-gray-500 dark:text-gray-400">g/kg</td>
@@ -1660,53 +1720,76 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Search */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1 sm:max-w-xs relative">
-          <label htmlFor="paciente-search" className="sr-only">
-            Buscar Paciente
-          </label>
-          <input
-            type="text"
-            id="paciente-search"
-            value={pacienteSearch}
-            onChange={(e) => setPacienteSearch(e.target.value)}
-            placeholder="Paciente"
-            className="block w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-          />
-          
-          {/* Patient dropdown */}
-          {filteredPacientes.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full rounded-md bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
-              {filteredPacientes.map((paciente) => (
-                <button
-                  key={paciente.id}
-                  onClick={() => handleSelectPaciente(paciente)}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  {paciente.nombre}
-                </button>
-              ))}
+      {/* Header with Search and Menu Actions */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 w-full sm:max-w-xs">
+            <div className="relative">
+              <label htmlFor="paciente-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Paciente
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="paciente-search"
+                  value={pacienteSearch}
+                  onChange={(e) => setPacienteSearch(e.target.value)}
+                  placeholder="Buscar paciente..."
+                  className="block w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+                />
+                
+                {/* Patient dropdown */}
+                {filteredPacientes.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full rounded-md bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
+                    {filteredPacientes.map((paciente) => (
+                      <button
+                        key={paciente.id}
+                        onClick={() => handleSelectPaciente(paciente)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {paciente.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
 
-        {selectedPaciente && activeTab === 'Menú' && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setIsLoadMenuModalOpen(true)}
-              className="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-700"
-            >
-              Cargar menú
-            </button>
-            <button
-              onClick={() => setIsNewMenuModalOpen(true)}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-            >
-              Nuevo menú
-            </button>
+            {selectedPaciente && activeTab === 'Codigo' && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setIsLoadMenuModalOpen(true)}
+                  className="rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-700"
+                >
+                  Cargar menú
+                </button>
+                <button
+                  onClick={() => setIsNewMenuModalOpen(true)}
+                  className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                >
+                  Nuevo menú
+                </button>
+                <button
+                  onClick={handleClearMenu}
+                  className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                >
+                  Limpiar menú
+                </button>
+                <button
+                  onClick={handleExportMenu}
+                  disabled={!currentMenuId}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                    currentMenuId 
+                      ? 'bg-emerald-600 hover:bg-emerald-500 focus-visible:outline-emerald-600' 
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  Exportar menú
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Add Patient Modal */}
@@ -1740,15 +1823,27 @@ const Dashboard = () => {
         isOpen={isNewMenuModalOpen}
         onClose={() => setIsNewMenuModalOpen(false)}
         idPaciente={selectedPaciente?.id ?? null}
-        defaultTiempos={[...DEFAULT_MENU_TIEMPOS] as MenuTiempos5}
+        defaultTiempos={[...DEFAULT_MENU_TIEMPOS]}
         onCreated={(menu) => {
-          const tiemposBase: MenuTiempos5 = [
-            menu.tiempo1,
-            menu.tiempo2,
-            menu.tiempo3,
-            menu.tiempo4,
-            menu.tiempo5,
-          ];
+          let tiemposBase: string[] = [];
+          if (menu.tiempos) {
+            try {
+              tiemposBase = JSON.parse(menu.tiempos);
+            } catch (e) {
+              console.error('Error parsing new menu tiempos:', e);
+            }
+          }
+
+          if (tiemposBase.length === 0) {
+            tiemposBase = [
+              menu.tiempo1,
+              menu.tiempo2,
+              menu.tiempo3,
+              menu.tiempo4,
+              menu.tiempo5,
+            ].filter(Boolean) as string[];
+          }
+
           setCurrentMenuId(menu.id);
           setCurrentMenuNombre(menu.nombre);
           setCurrentMenuTiempos(tiemposBase);
@@ -1763,7 +1858,7 @@ const Dashboard = () => {
       {/* Tab Content */}
       <div className="mt-6">
         {selectedPaciente ? (
-          activeTab === 'Menú'
+          activeTab === 'Codigo'
             ? renderMenuView()
             : activeTab === 'Macros'
             ? renderMacrosView()

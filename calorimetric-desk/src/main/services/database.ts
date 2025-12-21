@@ -188,6 +188,7 @@ function initializeSchema() {
       INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Desayuno');
       INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Almuerzo');
       INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Comida');
+      INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Snack');
       INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Cena');
       INSERT OR IGNORE INTO MenuTiempos (Nombre) VALUES ('Post-entreno');
     `);
@@ -204,16 +205,28 @@ function initializeSchema() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           idPaciente INTEGER NOT NULL,
           nombre TEXT NOT NULL,
-          tiempo1 TEXT NOT NULL,
-          tiempo2 TEXT NOT NULL,
-          tiempo3 TEXT NOT NULL,
-          tiempo4 TEXT NOT NULL,
-          tiempo5 TEXT NOT NULL,
+          tiempo1 TEXT,
+          tiempo2 TEXT,
+          tiempo3 TEXT,
+          tiempo4 TEXT,
+          tiempo5 TEXT,
+          tiempos TEXT, -- JSON array of strings
           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (idPaciente) REFERENCES Pacientes(id) ON DELETE CASCADE
         );
       `);
       console.log('Menus table created successfully');
+    } else {
+      // Check if tiempos column exists
+      const tiemposColumnExists = db.prepare(
+        "SELECT COUNT(*) as count FROM pragma_table_info('Menus') WHERE name='tiempos'"
+      ).get() as any;
+
+      if (tiemposColumnExists.count === 0) {
+        console.log('Adding tiempos column to Menus table...');
+        db.exec('ALTER TABLE Menus ADD COLUMN tiempos TEXT');
+        console.log('Tiempos column added successfully');
+      }
     }
 
     // Ensure MenuPaciente has MenuId + NombreTiempo columns
@@ -246,6 +259,7 @@ function initializeSchema() {
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion V');
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion VI');
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Hidratacion VII');
+      INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Snack');
     `);
 
     // Backfill NombreTiempo from idTiempos if missing

@@ -23,6 +23,14 @@ const App = () => {
   const [editingIngrediente, setEditingIngrediente] = useState<{ id: number; nombre: string; tipo_id?: number } | null>(null);
   const [tiposIngrediente, setTiposIngrediente] = useState<{ id: number; nombre: string; color: string }[]>([]);
   
+  // Persistent state for Dashboard
+  const [selectedPaciente, setSelectedPaciente] = useState<{ id: number; nombre: string } | null>(null);
+  const [pacienteSearch, setPacienteSearch] = useState('');
+  const [currentMenuId, setCurrentMenuId] = useState<number | null>(null);
+  const [currentMenuNombre, setCurrentMenuNombre] = useState<string>('');
+  const [currentMenuTiempos, setCurrentMenuTiempos] = useState<string[]>(['Desayuno', 'Almuerzo', 'Comida', 'Post-entreno', 'Cena']);
+  const [mealTables, setMealTables] = useState<any[]>([]);
+
   const { createRecipe } = useRecipes();
   const { ingredientes, loading: ingredientesLoading, refresh: refreshIngredientes } = useIngredientes();
 
@@ -122,7 +130,22 @@ const App = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard />;
+        return (
+          <Dashboard 
+            selectedPaciente={selectedPaciente}
+            setSelectedPaciente={setSelectedPaciente}
+            pacienteSearch={pacienteSearch}
+            setPacienteSearch={setPacienteSearch}
+            currentMenuId={currentMenuId}
+            setCurrentMenuId={setCurrentMenuId}
+            currentMenuNombre={currentMenuNombre}
+            setCurrentMenuNombre={setCurrentMenuNombre}
+            currentMenuTiempos={currentMenuTiempos}
+            setCurrentMenuTiempos={setCurrentMenuTiempos}
+            mealTables={mealTables}
+            setMealTables={setMealTables}
+          />
+        );
       case 'recetario':
         return <Recetario />;
       case 'pacientes':

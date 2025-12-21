@@ -90,6 +90,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getById: (menuId: number) => ipcRenderer.invoke('menu:getById', menuId),
     saveItems: (data: any) => ipcRenderer.invoke('menu:saveItems', data),
     delete: (idPaciente: number) => ipcRenderer.invoke('menu:delete', idPaciente),
+    deleteById: (menuId: number) => ipcRenderer.invoke('menu:deleteById', menuId),
     exportToWord: (menuTables: any[], menuNombre: string) => ipcRenderer.invoke('menu:exportToWord', menuTables, menuNombre),
   },
   menuTiempos: {

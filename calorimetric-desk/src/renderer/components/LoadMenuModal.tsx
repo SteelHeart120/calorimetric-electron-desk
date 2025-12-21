@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { HiXMark } from 'react-icons/hi2';
+import { HiXMark, HiTrash } from 'react-icons/hi2';
 
 interface MenuHeader {
   id: number;
@@ -30,27 +30,39 @@ export const LoadMenuModal: React.FC<LoadMenuModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadMenus = async () => {
+    if (!idPaciente) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await window.electronAPI?.menu.listByPaciente(idPaciente);
+      setMenus(result || []);
+    } catch (e) {
+      console.error('Error loading menus list:', e);
+      setError('Error al cargar la lista de menús');
+      setMenus([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isOpen) return;
-    if (!idPaciente) return;
-
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await window.electronAPI?.menu.listByPaciente(idPaciente);
-        setMenus(result || []);
-      } catch (e) {
-        console.error('Error loading menus list:', e);
-        setError('Error al cargar la lista de menús');
-        setMenus([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    load();
+    loadMenus();
   }, [isOpen, idPaciente]);
+
+  const handleDeleteMenu = async (e: React.MouseEvent, menuId: number) => {
+    e.stopPropagation();
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este menú?')) return;
+
+    try {
+      await window.electronAPI?.menu.deleteById(menuId);
+      loadMenus();
+    } catch (e) {
+      console.error('Error deleting menu:', e);
+      alert('Error al eliminar el menú');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -79,19 +91,28 @@ export const LoadMenuModal: React.FC<LoadMenuModalProps> = ({
               {menus.map((m) => {
                 const created = m.created_at ? new Date(m.created_at) : null;
                 return (
-                  <button
+                  <div
                     key={m.id}
+                    className="group flex items-center gap-2 rounded-lg border border-gray-200 p-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                     onClick={() => {
                       onSelectMenu(m.id);
                       onClose();
                     }}
-                    className="w-full text-left rounded-lg border border-gray-200 p-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <div className="font-medium text-gray-900 dark:text-white">{m.nombre}</div>
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {created && !Number.isNaN(created.getTime()) ? created.toLocaleString() : m.created_at}
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 dark:text-white">{m.nombre}</div>
+                      <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {created && !Number.isNaN(created.getTime()) ? created.toLocaleString() : m.created_at}
+                      </div>
                     </div>
-                  </button>
+                    <button
+                      onClick={(e) => handleDeleteMenu(e, m.id)}
+                      className="rounded-md p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
+                      title="Eliminar menú"
+                    >
+                      <HiTrash className="h-5 w-5" />
+                    </button>
+                  </div>
                 );
               })}
             </div>

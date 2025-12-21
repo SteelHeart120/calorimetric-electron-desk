@@ -59,13 +59,14 @@ export interface MenuHeader {
   tiempo3: string;
   tiempo4: string;
   tiempo5: string;
+  tiempos?: string;
   created_at: string;
 }
 
 export interface CreateMenuData {
   idPaciente: number;
   nombre: string;
-  tiempos: [string, string, string, string, string];
+  tiempos: string[];
 }
 
 export interface SaveMenuItemsData {
@@ -115,8 +116,7 @@ export interface ElectronAPI {
     listByPaciente: (idPaciente: number) => Promise<MenuHeader[]>;
     getById: (menuId: number) => Promise<{ menu: MenuHeader; items: any[] }>;
     saveItems: (data: SaveMenuItemsData) => Promise<void>;
-    delete: (idPaciente: number) => Promise<void>;
-    exportToWord: (menuTables: any[], menuNombre: string) => Promise<void>;
+    delete: (idPaciente: number) => Promise<void>;    deleteById: (menuId: number) => Promise<void>;    exportToWord: (menuTables: any[], menuNombre: string) => Promise<void>;
   };
   menuTiempos: {
     getAll: () => Promise<MenuTiempo[]>;

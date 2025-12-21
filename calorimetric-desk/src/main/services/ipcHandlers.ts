@@ -252,6 +252,15 @@ export function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle('menu:deleteById', async (_, menuId: number) => {
+    try {
+      return deleteMenuById(menuId);
+    } catch (error) {
+      console.error('Error deleting menu by id:', error);
+      throw error;
+    }
+  });
+
   ipcMain.handle('menu:exportToWord', async (_, menuTables: any[], menuNombre: string) => {
     try {
       return await exportMenuToWord(menuTables, menuNombre);

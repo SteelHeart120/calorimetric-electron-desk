@@ -23,13 +23,14 @@ export interface MenuHeader {
   tiempo3: string;
   tiempo4: string;
   tiempo5: string;
+  tiempos?: string; // JSON string
   created_at: string;
 }
 
 export interface CreateMenuData {
   idPaciente: number;
   nombre: string;
-  tiempos: [string, string, string, string, string];
+  tiempos: string[];
 }
 
 export interface SaveMenuItemsData {
@@ -54,17 +55,18 @@ export function getAllMenuTiempos(): MenuTiempo[] {
 export function createMenu(data: CreateMenuData): MenuHeader {
   const db = getDatabase();
   const stmt = db.prepare(`
-    INSERT INTO Menus (idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO Menus (idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5, tiempos)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const info = stmt.run(
     data.idPaciente,
     data.nombre,
-    data.tiempos[0],
-    data.tiempos[1],
-    data.tiempos[2],
-    data.tiempos[3],
-    data.tiempos[4]
+    data.tiempos[0] || '',
+    data.tiempos[1] || '',
+    data.tiempos[2] || '',
+    data.tiempos[3] || '',
+    data.tiempos[4] || '',
+    JSON.stringify(data.tiempos)
   );
   const id = Number(info.lastInsertRowid);
   return getMenuHeaderById(id);
@@ -75,7 +77,7 @@ export function listMenusByPaciente(idPaciente: number): MenuHeader[] {
   return db
     .prepare(
       `
-      SELECT id, idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5, created_at
+      SELECT id, idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5, tiempos, created_at
       FROM Menus
       WHERE idPaciente = ?
       ORDER BY datetime(created_at) DESC, id DESC
@@ -89,7 +91,7 @@ export function getMenuHeaderById(menuId: number): MenuHeader {
   const menu = db
     .prepare(
       `
-      SELECT id, idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5, created_at
+      SELECT id, idPaciente, nombre, tiempo1, tiempo2, tiempo3, tiempo4, tiempo5, tiempos, created_at
       FROM Menus
       WHERE id = ?
     `
@@ -182,4 +184,10 @@ export function deleteMenuByPaciente(idPaciente: number): void {
   const db = getDatabase();
   db.prepare('DELETE FROM Menus WHERE idPaciente = ?').run(idPaciente);
   console.log(`Menus deleted for patient ${idPaciente}`);
+}
+
+export function deleteMenuById(menuId: number): void {
+  const db = getDatabase();
+  db.prepare('DELETE FROM Menus WHERE id = ?').run(menuId);
+  console.log(`Menu deleted: ${menuId}`);
 }

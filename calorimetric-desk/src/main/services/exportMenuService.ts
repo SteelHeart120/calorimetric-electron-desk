@@ -35,26 +35,6 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
     // Create document sections
     const documentSections: (Paragraph | Table)[] = [];
 
-    // Add title and description
-    documentSections.push(
-      new Paragraph({
-        text: menuNombre || 'Plan Nutricional',
-        heading: 'Heading1',
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 100 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: 'Este documento contiene su plan nutricional detallado. Cada columna representa una opción diferente (I, II, III, IV, V) para cada tiempo de comida.',
-            size: 18
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 }
-      })
-    );
-
     // Create the single table
     const tableRows: TableRow[] = [];
 
@@ -66,7 +46,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
         children: romanNumerals.map(roman => 
           new TableCell({
             children: [new Paragraph({ 
-              children: [new TextRun({ text: roman, bold: true, size: 20 })],
+              children: [new TextRun({ text: roman, bold: true, size: 20, font: 'Arial' })],
               alignment: AlignmentType.CENTER
             })],
             width: { size: 14.28, type: WidthType.PERCENTAGE },
@@ -97,7 +77,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
           children: [
             new TableCell({
               children: [new Paragraph({ 
-                children: [new TextRun({ text: mealTimeName, bold: true, size: 20 })],
+                children: [new TextRun({ text: mealTimeName, bold: true, size: 20, font: 'Arial' })],
                 alignment: AlignmentType.CENTER
               })],
               columnSpan: 7,
@@ -123,8 +103,9 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
                       text: table.recipeTitle,
                       bold: true,
                       italics: true,
-                      size: 16,
-                      color: "0563C1",
+                      size: 18,
+                      font: 'Arial',
+                      color: sectionColor,
                       underline: {},
                     }),
                   ],
@@ -142,7 +123,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
              cellChildren.push(
               new Paragraph({
                 children: [
-                  new TextRun({ text: `${item.cantidad || ''} ${item.nombre || ''}`.trim(), size: 16 })
+                  new TextRun({ text: `${item.cantidad || ''} ${item.nombre || ''}`.trim(), size: 16, font: 'Arial' })
                 ],
                 spacing: { after: 20 }
               })
@@ -196,10 +177,10 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
               orientation: PageOrientation.LANDSCAPE,
             },
             margin: {
-              top: 720, // 0.5 inch
-              bottom: 720,
-              left: 720,
-              right: 720,
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
             }
           },
         },
