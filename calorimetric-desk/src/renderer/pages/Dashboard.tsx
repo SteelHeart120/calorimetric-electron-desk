@@ -9,14 +9,14 @@ import { MenuHeader, RecipeIngredient, TipoIngrediente } from '../types/electron
 // COLOR_OPTIONS will be populated from database
 let COLOR_OPTIONS: { value: string; label: string }[] = [];
 
-interface MealItem {
+export interface MealItem {
   codigo: string;
   cantidad: string;
   nombre: string;
   color: string;
 }
 
-interface MealTable {
+export interface MealTable {
   title: string;
   items: MealItem[];
   headerColor: 'green' | 'pink';
@@ -44,36 +44,11 @@ const buildMealTables = (tiemposBase: string[]): MealTable[] => {
   return tables;
 };
 
-interface DashboardProps {
-  selectedPaciente: { id: number; nombre: string } | null;
-  setSelectedPaciente: (paciente: { id: number; nombre: string } | null) => void;
-  pacienteSearch: string;
-  setPacienteSearch: (search: string) => void;
-  currentMenuId: number | null;
-  setCurrentMenuId: (id: number | null) => void;
-  currentMenuNombre: string;
-  setCurrentMenuNombre: (nombre: string) => void;
-  currentMenuTiempos: string[];
-  setCurrentMenuTiempos: (tiempos: string[]) => void;
-  mealTables: MealTable[];
-  setMealTables: (tables: MealTable[]) => void;
-}
-
-const Dashboard = ({
-  selectedPaciente,
-  setSelectedPaciente,
-  pacienteSearch,
-  setPacienteSearch,
-  currentMenuId,
-  setCurrentMenuId,
-  currentMenuNombre,
-  setCurrentMenuNombre,
-  currentMenuTiempos,
-  setCurrentMenuTiempos,
-  mealTables,
-  setMealTables,
-}: DashboardProps) => {
+const Dashboard = () => {
+  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const [activeTab, setActiveTab] = useState('Codigo');
+  const [selectedPaciente, setSelectedPaciente] = useState<{ id: number; nombre: string } | null>(null);
+  const [pacienteSearch, setPacienteSearch] = useState('');
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState<{ tableIndex: number; itemIndex: number } | null>(null);
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
@@ -86,6 +61,10 @@ const Dashboard = ({
 
   const [isLoadMenuModalOpen, setIsLoadMenuModalOpen] = useState(false);
   const [isNewMenuModalOpen, setIsNewMenuModalOpen] = useState(false);
+  const [currentMenuId, setCurrentMenuId] = useState<number | null>(null);
+  const [currentMenuNombre, setCurrentMenuNombre] = useState<string>('');
+  const [currentMenuTiempos, setCurrentMenuTiempos] = useState<string[]>(['Desayuno', 'Almuerzo', 'Comida', 'Post-entreno', 'Cena']);
+  const [mealTables, setMealTables] = useState<MealTable[]>([]);
 
   const { pacientes, createPaciente, refresh: refreshPacientes } = usePacientes();
 
@@ -189,13 +168,6 @@ const Dashboard = ({
 
   const handleAddMenu = () => {
     console.log('Agregar nuevo menú');
-  };
-
-  const handleClearMenu = () => {
-    setCurrentMenuId(null);
-    setCurrentMenuNombre('');
-    setMealTables([]);
-    showToast('Menú limpiado', 'info');
   };
 
   const handleLoadMenuById = async (menuId: number) => {
@@ -315,13 +287,13 @@ const Dashboard = ({
   };
 
   const handleCellChange = (tableIndex: number, itemIndex: number, field: keyof MealItem, value: string) => {
-    setMealTables(prevTables => {
-      const newTables = prevTables.map((table, tIdx) => {
+    setMealTables((prevTables: MealTable[]) => {
+      const newTables = prevTables.map((table: MealTable, tIdx: number) => {
         if (tIdx !== tableIndex) return table;
         
         return {
           ...table,
-          items: table.items.map((item, iIdx) => {
+          items: table.items.map((item: MealItem, iIdx: number) => {
             if (iIdx !== itemIndex) return item;
             return { ...item, [field]: value };
           })
@@ -333,7 +305,7 @@ const Dashboard = ({
   };
 
   const handleRecipeTitleChange = (tableIndex: number, value: string) => {
-    setMealTables(prevTables => {
+    setMealTables((prevTables: MealTable[]) => {
       const newTables = [...prevTables];
       newTables[tableIndex] = {
         ...newTables[tableIndex],
@@ -467,7 +439,7 @@ const Dashboard = ({
         cantidad: getIngredientQuantity(ing.nombre),
         nombre: ing.nombre,
         color: ing.color || '#9CA3AF',
-      }));
+      }))
       
       console.log('New items created:', newItems);
       
@@ -481,6 +453,7 @@ const Dashboard = ({
       
       // Set recipe title
       newTables[selectedMenuIndex].recipeTitle = recipe.nombre;
+      newTables[selectedMenuIndex].recipeLink = recipe.link;
       
       console.log('Updated menu table:', newTables[selectedMenuIndex]);
       setMealTables(newTables);
@@ -577,7 +550,7 @@ const Dashboard = ({
 
   const getHeaderColorClasses = (color: 'green' | 'pink') => {
     return color === 'green'
-      ? 'bg-emerald-500 text-white dark:bg-emerald-600'
+      ? 'bg-calorimetric text-white dark:bg-calorimetric-dark'
       : 'bg-pink-500 text-white dark:bg-pink-600';
   };
 
@@ -875,15 +848,17 @@ const Dashboard = ({
           </div>
         </div>
 
-        {/* Test Data Button */}
-        <div className="mb-4 flex justify-start">
-          <button
-            onClick={handleFillTestData}
-            className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-          >
-            🧪 Llenar con Datos de Prueba
-          </button>
-        </div>
+        {/* Test Data Button - Only in Development */}
+        {isDev && (
+          <div className="mb-4 flex justify-start">
+            <button
+              onClick={handleFillTestData}
+              className="rounded-md bg-calorimetric px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-calorimetric-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-calorimetric"
+            >
+              🧪 Llenar con Datos de Prueba
+            </button>
+          </div>
+        )}
 
         {rows.map((row, rowIndex) => (
           <div key={rowIndex} className="grid grid-cols-1 gap-0 lg:grid-cols-7">
@@ -1770,17 +1745,11 @@ const Dashboard = ({
                   Nuevo menú
                 </button>
                 <button
-                  onClick={handleClearMenu}
-                  className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-                >
-                  Limpiar menú
-                </button>
-                <button
                   onClick={handleExportMenu}
                   disabled={!currentMenuId}
                   className={`rounded-md px-3 py-1.5 text-xs font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
                     currentMenuId 
-                      ? 'bg-emerald-600 hover:bg-emerald-500 focus-visible:outline-emerald-600' 
+                      ? 'bg-calorimetric hover:bg-calorimetric-light focus-visible:outline-calorimetric' 
                       : 'bg-gray-400 cursor-not-allowed'
                   }`}
                 >

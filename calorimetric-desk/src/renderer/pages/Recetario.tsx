@@ -14,7 +14,7 @@ const Recetario = () => {
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   
   const { recipes, loading, error, updateRecipe, deleteRecipe, refresh } = useRecipes();
-
+  
   const getMealTypeColor = (tipo: string) => {
     switch (tipo) {
       case 'Desayuno':

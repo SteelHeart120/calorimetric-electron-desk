@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  /* Dark mode configuration */
+  --color-calorimetric: #07bc24;
+  --color-calorimetric-light: #09e02b;
+  --color-calorimetric-dark: #058a1a;
 }
 
 body {

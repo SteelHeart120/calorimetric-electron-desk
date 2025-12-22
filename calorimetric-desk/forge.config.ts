@@ -16,13 +16,15 @@ const config: ForgeConfig = {
     asar: {
       unpack: '**/node_modules/better-sqlite3/**/*',
     },
-    icon: './src/assets/images/CalorimetricLogo', // Forge will look for .ico, .png, etc.
+    icon: path.join(__dirname, 'src', 'assets', 'icons', 'CalorimetricLogo'), // Forge will look for .ico, .png, etc.
   },
   rebuildConfig: {
     extraModules: ['better-sqlite3']
   },
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      setupIcon: path.join(__dirname, 'src', 'assets', 'icons', 'CalorimetricLogo.ico'),
+    }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({}),
     new MakerDeb({}),

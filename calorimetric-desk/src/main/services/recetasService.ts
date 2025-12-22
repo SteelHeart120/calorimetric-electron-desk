@@ -49,6 +49,7 @@ function getRecipeIngredients(recipeId: number): RecipeIngredient[] {
     JOIN Ingredientes i ON ri.IngredienteId = i.id
     LEFT JOIN TipoIngrediente ti ON i.tipo_id = ti.id
     WHERE ri.RecetaId = ?
+    ORDER BY ri.id ASC
   `).all(recipeId) as any[];
   return ingredients;
 }

@@ -50,8 +50,11 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
               alignment: AlignmentType.CENTER
             })],
             width: { size: 14.28, type: WidthType.PERCENTAGE },
-            shading: { type: ShadingType.SOLID, color: 'E5E7EB' },
             verticalAlign: VerticalAlign.CENTER,
+            borders: {
+              left: { style: BorderStyle.NIL },
+              right: { style: BorderStyle.NIL },
+            }
           })
         )
       })
@@ -64,12 +67,13 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
       
       // Get the Meal Time Name from the first item's title (e.g. "Desayuno I" -> "Desayuno")
       const firstTitle = chunk[0]?.title || '';
-      // Remove the Roman numeral at the end to get the base name
-      const mealTimeName = firstTitle.replace(/\s+[IV]+$/, '').toUpperCase();
+      // Remove the Roman numeral at the end to get the base name and format it (Sentence case)
+      const rawMealName = firstTitle.replace(/\s+[IV]+$/, '');
+      const mealTimeName = rawMealName.charAt(0).toUpperCase() + rawMealName.slice(1).toLowerCase();
       
       // Determine section color based on headerColor property
-      // pink -> light pink, green -> light green
-      const sectionColor = chunk[0]?.headerColor === 'pink' ? 'EC4899' : '10B981'; 
+      // pink -> light pink, green -> #07bc24
+      const sectionColor = chunk[0]?.headerColor === 'pink' ? 'EC4899' : '07BC24'; 
 
       // Row for Meal Time Name (Spanning all 7 columns)
       tableRows.push(
@@ -77,7 +81,7 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
           children: [
             new TableCell({
               children: [new Paragraph({ 
-                children: [new TextRun({ text: mealTimeName, bold: true, size: 20, font: 'Arial' })],
+                children: [new TextRun({ text: mealTimeName, bold: true, size: 20, font: 'Arial', color: 'FFFFFF' })],
                 alignment: AlignmentType.CENTER
               })],
               columnSpan: 7,
@@ -94,24 +98,50 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
 
         // Recipe Title
         if (table.recipeTitle) {
+          const titleChildren: (TextRun | ExternalHyperlink)[] = [];
+          
+          if (table.recipeLink) {
+            // Ensure link has protocol
+            let link = table.recipeLink;
+            if (!link.startsWith('http://') && !link.startsWith('https://') && !link.startsWith('mailto:')) {
+              link = 'https://' + link;
+            }
+
+            titleChildren.push(
+              new ExternalHyperlink({
+                children: [
+                  new TextRun({
+                    text: table.recipeTitle,
+                    bold: true,
+                    italics: true,
+                    size: 18,
+                    font: 'Arial',
+                    color: sectionColor,
+                    underline: {
+                      type: 'single',
+                      color: sectionColor,
+                    },
+                  }),
+                ],
+                link: link,
+              })
+            );
+          } else {
+            titleChildren.push(
+              new TextRun({
+                text: table.recipeTitle,
+                bold: true,
+                italics: true,
+                size: 18,
+                font: 'Arial',
+                color: sectionColor,
+              })
+            );
+          }
+
           cellChildren.push(
             new Paragraph({
-              children: [
-                new ExternalHyperlink({
-                  children: [
-                    new TextRun({
-                      text: table.recipeTitle,
-                      bold: true,
-                      italics: true,
-                      size: 18,
-                      font: 'Arial',
-                      color: sectionColor,
-                      underline: {},
-                    }),
-                  ],
-                  link: table.recipeLink || "recipe://0",
-                }),
-              ],
+              children: titleChildren,
               spacing: { after: 50 },
             })
           );
@@ -157,12 +187,12 @@ export async function exportMenuToWord(menuTables: MenuTableData[], menuNombre: 
       rows: tableRows,
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: {
-        top: { style: BorderStyle.SINGLE, size: 1, color: "D1D5DB" },
-        bottom: { style: BorderStyle.SINGLE, size: 1, color: "D1D5DB" },
-        left: { style: BorderStyle.SINGLE, size: 1, color: "D1D5DB" },
-        right: { style: BorderStyle.SINGLE, size: 1, color: "D1D5DB" },
-        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" },
-        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" }
+        top: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+        left: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+        right: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
+        insideVertical: { style: BorderStyle.SINGLE, size: 2, color: "000000" }
       }
     });
 

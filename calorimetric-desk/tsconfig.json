@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "commonjs",
+    "module": "ESNext",
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -13,5 +13,9 @@
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "types": []
-  }
+  },
+  "include": [
+    "src/**/*",
+    "forge.env.d.ts"
+  ]
 }

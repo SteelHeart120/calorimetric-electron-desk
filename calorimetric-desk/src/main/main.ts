@@ -23,7 +23,7 @@ const createWindow = () => {
     height: 800,
     title: 'Calorimetric Pro-diet',
     show: false, // Don't show until maximized to avoid flicker
-    icon: path.join(__dirname, '..', '..', 'src', 'assets', 'images', 'CalorimetricLogo.jpeg'),
+    icon: path.join(__dirname, '..', '..', 'src', 'assets', 'icons', 'CalorimetricLogo.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
