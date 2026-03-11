@@ -45,7 +45,7 @@ const buildMealTables = (tiemposBase: string[]): MealTable[] => {
 };
 
 const Dashboard = () => {
-  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isDev = import.meta.env.DEV;
   const [activeTab, setActiveTab] = useState('Codigo');
   const [selectedPaciente, setSelectedPaciente] = useState<{ id: number; nombre: string } | null>(null);
   const [pacienteSearch, setPacienteSearch] = useState('');
@@ -1777,6 +1777,7 @@ const Dashboard = () => {
         }}
         onSelectRecipe={handleAddRecipeIngredients}
         menuTitle={selectedMenuIndex !== null ? mealTables[selectedMenuIndex]?.title || '' : ''}
+        idPaciente={selectedPaciente?.id ?? null}
       />
 
       {/* Load Menu Modal */}

@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     create: (recipe: Omit<Recipe, 'id'>) => ipcRenderer.invoke('recipes:create', recipe),
     update: (id: number, recipe: Partial<Recipe>) => ipcRenderer.invoke('recipes:update', id, recipe),
     delete: (id: number) => ipcRenderer.invoke('recipes:delete', id),
+    getUsage: (recipeName: string, idPaciente: number) => ipcRenderer.invoke('recipes:getUsage', recipeName, idPaciente),
   },
   pacientes: {
     getAll: () => ipcRenderer.invoke('pacientes:getAll'),

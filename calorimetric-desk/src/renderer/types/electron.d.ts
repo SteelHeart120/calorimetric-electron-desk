@@ -93,6 +93,7 @@ export interface ElectronAPI {
     create: (recipe: Omit<Recipe, 'id'>) => Promise<number>;
     update: (id: number, recipe: Partial<Recipe>) => Promise<boolean>;
     delete: (id: number) => Promise<boolean>;
+    getUsage: (recipeName: string, idPaciente: number) => Promise<string[]>;
   };
   pacientes: {
     getAll: () => Promise<Paciente[]>;

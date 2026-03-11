@@ -18,6 +18,7 @@ import {
   getMenuById,
   listMenusByPaciente,
   saveMenuItems,
+  getRecipeUsageByPatient,
   CreateMenuData,
   SaveMenuItemsData
 } from './menuService';
@@ -65,6 +66,16 @@ export function registerIpcHandlers() {
       return deleteRecipe(id);
     } catch (error) {
       console.error('Error deleting recipe:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('recipes:getUsage', async (_, recipeName: string, idPaciente: number) => {
+    console.log(`[IPC] recipes:getUsage called for recipe: ${recipeName}, patient: ${idPaciente}`);
+    try {
+      return getRecipeUsageByPatient(recipeName, idPaciente);
+    } catch (error) {
+      console.error('Error getting recipe usage:', error);
       throw error;
     }
   });

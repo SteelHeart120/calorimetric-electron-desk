@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { HiXMark, HiMagnifyingGlass } from 'react-icons/hi2';
 import { Recipe, RecipeIngredient } from '../types/electron';
+import { HiExclamationTriangle } from 'react-icons/hi2';
 
 interface LoadRecetaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectRecipe: (recipe: Recipe) => void;
   menuTitle: string;
+  idPaciente: number | null;
 }
 
 export const LoadRecetaModal: React.FC<LoadRecetaModalProps> = ({
@@ -14,17 +16,22 @@ export const LoadRecetaModal: React.FC<LoadRecetaModalProps> = ({
   onClose,
   onSelectRecipe,
   menuTitle,
+  idPaciente,
 }) => {
   const [recetas, setRecetas] = useState<Recipe[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceta, setSelectedReceta] = useState<Recipe | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [usageHistory, setUsageHistory] = useState<string[]>([]);
+  const [isSearchListOpen, setIsSearchListOpen] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
       loadRecetas();
       setSearchQuery('');
       setSelectedReceta(null);
+      setUsageHistory([]);
+      setIsSearchListOpen(true);
     }
   }, [isOpen]);
 
@@ -48,8 +55,18 @@ export const LoadRecetaModal: React.FC<LoadRecetaModalProps> = ({
     );
   }, [recetas, searchQuery]);
 
-  const handleSelectReceta = (receta: Recipe) => {
+  const handleSelectReceta = async (receta: Recipe) => {
     setSelectedReceta(receta);
+    setIsSearchListOpen(false); // Requirement: close the list when selecting
+    
+    if (idPaciente && window.electronAPI?.recipes.getUsage) {
+      try {
+        const usage = await window.electronAPI.recipes.getUsage(receta.nombre, idPaciente);
+        setUsageHistory(usage);
+      } catch (error) {
+        console.error('Error fetching usage history:', error);
+      }
+    }
   };
 
   const handleAgregarReceta = () => {
@@ -103,14 +120,17 @@ export const LoadRecetaModal: React.FC<LoadRecetaModalProps> = ({
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setIsSearchListOpen(true);
+              }}
               placeholder="Buscar receta..."
               className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500"
             />
           </div>
 
           {/* Search Results */}
-          {searchQuery.trim() && (
+          {searchQuery.trim() && isSearchListOpen && (
             <div className="space-y-2">
               {isLoading ? (
                 <div className="text-center py-4 text-gray-500 dark:text-gray-400">
@@ -161,8 +181,16 @@ export const LoadRecetaModal: React.FC<LoadRecetaModalProps> = ({
           {/* Selected Recipe Display */}
           {selectedReceta && (
             <div className="mt-4 p-4 rounded-lg border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20">
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Receta seleccionada:
+              <div className="flex justify-between items-start mb-2">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Receta seleccionada:
+                </div>
+                {usageHistory.length > 0 && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                    <HiExclamationTriangle className="w-3.5 h-3.5" />
+                    <span>Usada en: {usageHistory.join(', ')}</span>
+                  </div>
+                )}
               </div>
               <div className="font-semibold text-gray-900 dark:text-white mb-3">
                 {selectedReceta.nombre}

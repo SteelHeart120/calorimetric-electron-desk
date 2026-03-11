@@ -191,3 +191,20 @@ export function deleteMenuById(menuId: number): void {
   db.prepare('DELETE FROM Menus WHERE id = ?').run(menuId);
   console.log(`Menu deleted: ${menuId}`);
 }
+
+export function getRecipeUsageByPatient(recipeName: string, idPaciente: number): string[] {
+  const db = getDatabase();
+  const menus = db
+    .prepare(
+      `
+      SELECT DISTINCT m.nombre
+      FROM Menus m
+      JOIN MenuPaciente mp ON m.id = mp.MenuId
+      WHERE m.idPaciente = ? AND mp.RecipeTitle = ?
+      ORDER BY m.created_at DESC
+    `
+    )
+    .all(idPaciente, recipeName) as { nombre: string }[];
+  
+  return menus.map(m => m.nombre);
+}
