@@ -434,12 +434,22 @@ const Dashboard = () => {
     // Use setTimeout to ensure modal closes properly before state update
     setTimeout(() => {
       const newTables = [...mealTables];
-      const newItems = recipe.ingredientes.map((ing: RecipeIngredient) => ({
-        codigo: '',
-        cantidad: getIngredientQuantity(ing.nombre),
-        nombre: ing.nombre,
-        color: ing.color || '#9CA3AF',
-      }))
+      const newItems = recipe.ingredientes.map((ing: RecipeIngredient) => {
+        let cantidad = '';
+        if (ing.unidad === 'libre') {
+          cantidad = 'libre';
+        } else if (ing.cantidad && ing.unidad) {
+          cantidad = `${ing.cantidad} ${ing.unidad}`;
+        } else if (ing.cantidad) {
+          cantidad = ing.cantidad;
+        }
+        return {
+          codigo: '',
+          cantidad,
+          nombre: ing.nombre,
+          color: ing.color || '#9CA3AF',
+        };
+      });
       
       console.log('New items created:', newItems);
       

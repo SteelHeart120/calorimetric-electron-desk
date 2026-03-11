@@ -2,6 +2,8 @@ export interface RecipeIngredient {
   nombre: string;
   tipo?: string;
   color?: string;
+  cantidad?: string;
+  unidad?: string;
 }
 
 export interface Recipe {

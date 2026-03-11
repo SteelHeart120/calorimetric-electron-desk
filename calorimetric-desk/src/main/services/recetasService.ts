@@ -4,6 +4,8 @@ export interface RecipeIngredient {
   nombre: string;
   tipo?: string;
   color?: string;
+  cantidad?: string;
+  unidad?: string;
 }
 
 export interface Recipe {
@@ -44,7 +46,7 @@ export function getRecipeById(id: number): Recipe | null {
 function getRecipeIngredients(recipeId: number): RecipeIngredient[] {
   const database = getDatabase();
   const ingredients = database.prepare(`
-    SELECT i.nombre, ti.nombre as tipo, ti.color
+    SELECT i.nombre, ti.nombre as tipo, ti.color, ri.cantidad, ri.unidad
     FROM RecetaIngredientes ri
     JOIN Ingredientes i ON ri.IngredienteId = i.id
     LEFT JOIN TipoIngrediente ti ON i.tipo_id = ti.id
@@ -77,7 +79,7 @@ export function createRecipe(recipe: Omit<Recipe, 'id'>): number {
       const ingResult = database.prepare('INSERT INTO Ingredientes (nombre) VALUES (?)').run(ingredientName);
       ingredientRecord = { id: ingResult.lastInsertRowid };
     }
-    database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId) VALUES (?, ?)').run(recipeId, ingredientRecord.id);
+    database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId, cantidad, unidad) VALUES (?, ?, ?, ?)').run(recipeId, ingredientRecord.id, (ingredient as any).cantidad || null, (ingredient as any).unidad || null);
   }
 
   return recipeId;
@@ -118,7 +120,7 @@ export function updateRecipe(id: number, recipe: Partial<Recipe>): boolean {
         const ingResult = database.prepare('INSERT INTO Ingredientes (nombre) VALUES (?)').run(ingredientName);
         ingredientRecord = { id: ingResult.lastInsertRowid };
       }
-      database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId) VALUES (?, ?)').run(id, ingredientRecord.id);
+      database.prepare('INSERT INTO RecetaIngredientes (RecetaId, IngredienteId, cantidad, unidad) VALUES (?, ?, ?, ?)').run(id, ingredientRecord.id, (ingredient as any).cantidad || null, (ingredient as any).unidad || null);
     }
   }
 

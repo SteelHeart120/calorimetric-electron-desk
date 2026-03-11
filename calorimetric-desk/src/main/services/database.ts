@@ -262,6 +262,24 @@ function initializeSchema() {
       INSERT OR IGNORE INTO Tiempos (Nombre) VALUES ('Snack');
     `);
 
+    // Check and add cantidad column to RecetaIngredientes
+    const cantidadColExists = db.prepare(
+      "SELECT COUNT(*) as count FROM pragma_table_info('RecetaIngredientes') WHERE name='cantidad'"
+    ).get() as any;
+    if (cantidadColExists.count === 0) {
+      console.log('Adding cantidad column to RecetaIngredientes...');
+      db.exec('ALTER TABLE RecetaIngredientes ADD COLUMN cantidad TEXT');
+    }
+
+    // Check and add unidad column to RecetaIngredientes
+    const unidadColExists = db.prepare(
+      "SELECT COUNT(*) as count FROM pragma_table_info('RecetaIngredientes') WHERE name='unidad'"
+    ).get() as any;
+    if (unidadColExists.count === 0) {
+      console.log('Adding unidad column to RecetaIngredientes...');
+      db.exec('ALTER TABLE RecetaIngredientes ADD COLUMN unidad TEXT');
+    }
+
     // Backfill NombreTiempo from idTiempos if missing
     db.exec(`
       UPDATE MenuPaciente
@@ -357,6 +375,8 @@ function createTables() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       RecetaId INTEGER NOT NULL,
       IngredienteId INTEGER NOT NULL,
+      cantidad TEXT,
+      unidad TEXT,
       FOREIGN KEY (RecetaId) REFERENCES Recetas(id) ON DELETE CASCADE,
       FOREIGN KEY (IngredienteId) REFERENCES Ingredientes(id) ON DELETE CASCADE,
       UNIQUE(RecetaId, IngredienteId)

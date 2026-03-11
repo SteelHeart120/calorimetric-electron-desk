@@ -121,16 +121,13 @@ const App = () => {
   ];
 
   const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'recetario':
-        return <Recetario />;
-      case 'pacientes':
-        return <Pacientes />;
-      default:
-        return <Dashboard />;
-    }
+    return (
+      <>
+        <div className={currentPage === 'dashboard' ? '' : 'hidden'}><Dashboard /></div>
+        <div className={currentPage === 'recetario' ? '' : 'hidden'}><Recetario /></div>
+        <div className={currentPage === 'pacientes' ? '' : 'hidden'}><Pacientes /></div>
+      </>
+    );
   };
 
   return (
